@@ -1,4 +1,4 @@
-import type { MetaFunction, LoaderFunction } from "@remix-run/node";
+import type { LoaderFunction, MetaFunction } from "@remix-run/node";
 
 import {
   Links,
@@ -11,6 +11,8 @@ import {
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 // Import ClerkApp
 import { ClerkApp } from "@clerk/remix";
+import "./tailwind.css";
+import "flowbite/dist/flowbite.min.css";
 
 export const meta: MetaFunction = () => [
   {
@@ -28,10 +30,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <Meta />
         <Links />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
-        />
       </head>
       <body>
         {children}
