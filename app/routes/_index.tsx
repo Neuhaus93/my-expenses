@@ -9,6 +9,7 @@ import { Form, useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 import { useRef } from "react";
 import { z } from "zod";
+import { CreateExpenseDialog } from "~/components/create-expense-dialog";
 import { db } from "~/db/config.server";
 import { formatCurrency } from "~/lib/currency";
 
@@ -58,7 +59,9 @@ export default function Index() {
         </button>
       </Form>
 
-      <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+      <CreateExpenseDialog categories={categories} />
+
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>

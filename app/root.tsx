@@ -1,4 +1,8 @@
-import type { LoaderFunction, MetaFunction } from "@remix-run/node";
+import type {
+  LinksFunction,
+  LoaderFunction,
+  MetaFunction,
+} from "@remix-run/node";
 
 import {
   Links,
@@ -11,8 +15,9 @@ import {
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 // Import ClerkApp
 import { ClerkApp } from "@clerk/remix";
-import "./tailwind.css";
-import "flowbite/dist/flowbite.min.css";
+
+import appStylesHref from "./globals.css?url";
+// import "./globals.css";
 
 export const meta: MetaFunction = () => [
   {
@@ -20,6 +25,10 @@ export const meta: MetaFunction = () => [
     title: "New Remix App",
     viewport: "width=device-width,initial-scale=1",
   },
+];
+
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: appStylesHref },
 ];
 
 export const loader: LoaderFunction = (args) => rootAuthLoader(args);
