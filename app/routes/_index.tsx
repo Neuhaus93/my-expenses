@@ -5,13 +5,44 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
+import { Form, useFetcher, useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 import { useRef } from "react";
 import { z } from "zod";
 import { CreateExpenseDialog } from "~/components/create-expense-dialog";
+import { Button } from "~/components/ui/button";
 import { db } from "~/db/config.server";
 import { formatCurrency } from "~/lib/currency";
+
+export async function loader(args: LoaderFunctionArgs) {
+  const { userId } = await getAuth(args);
+  if (!userId) {
+    return redirect("/sign-in");
+  }
+
+  const url = new URL(args.request.url);
+  const searchParamsObj = Object.fromEntries(url.searchParams);
+  const { category } = z
+    .object({ category: z.coerce.number().int().catch(-1) })
+    .parse(searchParamsObj);
+
+  const transactions = await db.query.transactions.findMany({
+    where: (transactions, { and, eq }) => {
+      return category === -1
+        ? undefined
+        : and(
+            eq(transactions.userId, userId),
+            eq(transactions.categoryId, category)
+          );
+    },
+    with: {
+      category: true,
+    },
+  });
+  const categories = await db.query.categories.findMany();
+
+  return json({ transactions, categories, defaultCategory: category }, 200);
+}
 
 export default function Index() {
   const { transactions, categories, defaultCategory } =
@@ -90,6 +121,9 @@ export default function Index() {
                 <td className="px-6 py-4">
                   {format(t.timestamp, "dd MMM, yyyy")}
                 </td>
+                <td className="px-6 py-4">
+                  <DeleteButton id={t.id} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -99,35 +133,19 @@ export default function Index() {
   );
 }
 
-export async function loader(args: LoaderFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    return redirect("/sign-in");
-  }
+const DeleteButton = ({ id }: { id: number }) => {
+  const fetcher = useFetcher();
+  const loading = fetcher.state !== "idle";
 
-  const url = new URL(args.request.url);
-  const searchParamsObj = Object.fromEntries(url.searchParams);
-  const { category } = z
-    .object({ category: z.coerce.number().int().catch(-1) })
-    .parse(searchParamsObj);
-
-  const transactions = await db.query.transactions.findMany({
-    where: (transactions, { and, eq }) => {
-      return category === -1
-        ? undefined
-        : and(
-            eq(transactions.userId, userId),
-            eq(transactions.categoryId, category)
-          );
-    },
-    with: {
-      category: true,
-    },
-  });
-  const categories = await db.query.categories.findMany();
-
-  return json({ transactions, categories, defaultCategory: category }, 200);
-}
+  return (
+    <fetcher.Form method="post" action={`transaction/${id}/delete`}>
+      <input hidden name="id" defaultValue={id} />
+      <Button size="sm" variant="destructive" disabled={loading}>
+        Delete
+      </Button>
+    </fetcher.Form>
+  );
+};
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -140,4 +158,4 @@ export async function action({ request }: ActionFunctionArgs) {
   return redirect(category === -1 ? "/" : `/?category=${category}`);
 }
 
-const TABLE_COLS = ["Category", "Description", "Value", "Date"];
+const TABLE_COLS = ["Category", "Description", "Value", "Date", "Actions"];

@@ -1,4 +1,4 @@
-import { Form } from "@remix-run/react";
+import { useFetcher } from "@remix-run/react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -10,14 +10,31 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 
 export const CreateExpenseDialog = ({
   categories,
 }: {
   categories: Array<{ title: string; id: number }>;
 }) => {
+  const [open, setOpen] = useState(false);
+  const fetcher = useFetcher();
+  const loading = fetcher.state !== "idle";
+
+  useEffect(() => {
+    const { ok } = z
+      .object({ ok: z.boolean() })
+      .catch({ ok: false })
+      .parse(fetcher.data);
+
+    if (ok) {
+      setOpen(false);
+    }
+  }, [fetcher.data]);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>Create Expense</Button>
       </DialogTrigger>
@@ -26,7 +43,7 @@ export const CreateExpenseDialog = ({
           <DialogTitle>Create New Expense</DialogTitle>
         </DialogHeader>
 
-        <Form method="post" action="/my-action">
+        <fetcher.Form method="post" action="/transaction/new">
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -46,35 +63,25 @@ export const CreateExpenseDialog = ({
               </select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
+              <Label htmlFor="value" className="text-right">
+                Value
               </Label>
               <Input
-                id="name"
-                name="name"
-                defaultValue="Pedro Duarte"
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Username
-              </Label>
-              <Input
-                id="username"
-                name="username"
-                defaultValue="@peduarte"
+                step={0.01}
+                type="number"
+                id="value"
+                name="value"
                 className="col-span-3"
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="default" type="submit">
-              Save changes
+            <Button variant="default" type="submit" disabled={loading}>
+              Create Expense
             </Button>
           </DialogFooter>
-        </Form>
+        </fetcher.Form>
       </DialogContent>
     </Dialog>
   );

@@ -2,26 +2,17 @@ import { ActionFunctionArgs, json } from "@remix-run/node";
 import { db } from "~/db/config.server";
 import { transactions } from "~/db/schema.server";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
 
   const formObj = Object.fromEntries(formData.entries());
   const formSchema = z.object({
-    category: z.coerce.number().int(),
-    value: z.coerce.number(),
+    id: z.coerce.number().int(),
   });
-
-  const { category: categoryId, value } = formSchema.parse(formObj);
-  const cents = Math.floor(value * 100);
-
-  await db.insert(transactions).values({
-    type: "expense",
-    timestamp: new Date(),
-    userId: "user_2i7ipp18qElWdqGJFl9z5oZyL04",
-    categoryId,
-    cents,
-  });
+  const { id } = formSchema.parse(formObj);
+  await db.delete(transactions).where(eq(transactions.id, id));
 
   return json({ ok: true });
 }
