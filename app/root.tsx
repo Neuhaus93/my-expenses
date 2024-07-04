@@ -17,6 +17,7 @@ import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import { ClerkApp } from "@clerk/remix";
 
 import appStylesHref from "./globals.css?url";
+import { TooltipProvider } from "./components/ui/tooltip";
 // import "./globals.css";
 
 export const meta: MetaFunction = () => [
@@ -52,7 +53,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  return <Outlet />;
+  return (
+    <TooltipProvider>
+      <Outlet />
+    </TooltipProvider>
+  );
 }
 
 export default ClerkApp(App);
