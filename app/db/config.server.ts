@@ -1,10 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "~/db/schema.server";
+import { env } from "~/env.server";
 
 const client = new pg.Client({
-  connectionString:
-    "postgresql://myuser:mysecretpassword@localhost:5432/mydatabase",
+  connectionString: env.DATABASE_URL,
 });
 
 await client.connect();
