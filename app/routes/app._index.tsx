@@ -37,15 +37,28 @@ export async function loader(args: LoaderFunctionArgs) {
     },
     with: {
       category: true,
+      wallet: true,
     },
   });
-  const categories = await db.query.categories.findMany();
+  const categories = await db.query.categories.findMany({
+    where(fields, { eq }) {
+      return eq(fields.userId, userId);
+    },
+  });
+  const wallets = await db.query.wallets.findMany({
+    where(fields, { eq }) {
+      return eq(fields.userId, userId);
+    },
+  });
 
-  return json({ transactions, categories, defaultCategory: category }, 200);
+  return json(
+    { transactions, categories, wallets, defaultCategory: category },
+    200
+  );
 }
 
 export default function Index() {
-  const { transactions, categories, defaultCategory } =
+  const { transactions, categories, wallets, defaultCategory } =
     useLoaderData<typeof loader>();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -90,7 +103,7 @@ export default function Index() {
         </button>
       </Form>
 
-      <CreateExpenseDialog categories={categories} />
+      <CreateExpenseDialog categories={categories} wallets={wallets} />
 
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -116,6 +129,7 @@ export default function Index() {
                 >
                   {t.category.title}
                 </th>
+                <td className="px-6 py-4">{t.wallet.name}</td>
                 <td className="px-6 py-4">{t.description}</td>
                 <td className="px-6 py-4">{formatCurrency(t.cents)}</td>
                 <td className="px-6 py-4">
@@ -158,4 +172,11 @@ export async function action({ request }: ActionFunctionArgs) {
   return redirect(category === -1 ? "/app" : `/app?category=${category}`);
 }
 
-const TABLE_COLS = ["Category", "Description", "Value", "Date", "Actions"];
+const TABLE_COLS = [
+  "Category",
+  "Wallet",
+  "Description",
+  "Value",
+  "Date",
+  "Actions",
+];

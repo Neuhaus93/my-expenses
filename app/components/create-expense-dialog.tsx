@@ -15,8 +15,10 @@ import { z } from "zod";
 
 export const CreateExpenseDialog = ({
   categories,
+  wallets,
 }: {
   categories: Array<{ title: string; id: number }>;
+  wallets: Array<{ id: number; name: string }>;
 }) => {
   const [open, setOpen] = useState(false);
   const fetcher = useFetcher();
@@ -58,6 +60,23 @@ export const CreateExpenseDialog = ({
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="wallet" className="text-right">
+                Wallet
+              </Label>
+              <select
+                id="wallet"
+                name="wallet"
+                defaultValue={wallets[0].id}
+                className="col-span-3"
+              >
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
                   </option>
                 ))}
               </select>
