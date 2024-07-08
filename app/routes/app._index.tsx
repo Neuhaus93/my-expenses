@@ -9,7 +9,7 @@ import { Form, useFetcher, useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 import { useRef } from "react";
 import { z } from "zod";
-import { CreateExpenseDialog } from "~/components/create-expense-dialog";
+import { CreateTransactionDialog } from "~/components/create-transaction-dialog";
 import { Button } from "~/components/ui/button";
 import { db } from "~/db/config.server";
 import { formatCurrency } from "~/lib/currency";
@@ -64,6 +64,13 @@ export default function Index() {
 
   return (
     <div className="px-4 py-6">
+      <div className="flex mb-4">
+        <div className="shadow-md rounded-lg p-3 min-w-[200px] bg-white">
+          <p className="text-sm text-slate-500">Current Balance</p>
+          <p className="mt-1.5">{formatCurrency(12345)}</p>
+        </div>
+      </div>
+
       <Form
         ref={formRef}
         method="post"
@@ -103,7 +110,7 @@ export default function Index() {
         </button>
       </Form>
 
-      <CreateExpenseDialog categories={categories} wallets={wallets} />
+      <CreateTransactionDialog categories={categories} wallets={wallets} />
 
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -131,7 +138,13 @@ export default function Index() {
                 </th>
                 <td className="px-6 py-4">{t.wallet.name}</td>
                 <td className="px-6 py-4">{t.description}</td>
-                <td className="px-6 py-4">{formatCurrency(t.cents)}</td>
+                <td
+                  className={`px-6 py-4 ${
+                    t.type === "income" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {formatCurrency(t.cents)}
+                </td>
                 <td className="px-6 py-4">
                   {format(t.timestamp, "dd MMM, yyyy")}
                 </td>

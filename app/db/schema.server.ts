@@ -38,7 +38,7 @@ export const walletsRelations = relations(wallets, ({ one, many }) => ({
 export const transactions = pgTable("transaction", {
   id: serial("id").primaryKey(),
   cents: integer("cents").notNull(),
-  type: text("type", { enum: ["income", "expense"] }).notNull(),
+  type: text("type", { enum: ["income", "expense", "transference"] }).notNull(),
   description: text("description"),
   userId: text("user_id")
     .references(() => users.id)
@@ -72,6 +72,7 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
 export const categories = pgTable("category", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 256 }).notNull(),
+  type: text("type", { enum: ["income", "expense"] }).notNull(),
   userId: text("user_id")
     .references(() => users.id)
     .notNull(),
