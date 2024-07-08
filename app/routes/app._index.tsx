@@ -7,11 +7,13 @@ import {
 } from "@remix-run/node";
 import { Form, useFetcher, useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
+import { eq, sql } from "drizzle-orm";
 import { useRef } from "react";
 import { z } from "zod";
 import { CreateTransactionDialog } from "~/components/create-transaction-dialog";
 import { Button } from "~/components/ui/button";
 import { db } from "~/db/config.server";
+import { transactions as transactionsSchema } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -26,7 +28,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .object({ category: z.coerce.number().int().catch(-1) })
     .parse(searchParamsObj);
 
-  const transactions = await db.query.transactions.findMany({
+  const transactionsPromise = db.query.transactions.findMany({
     where: (transactions, { and, eq }) => {
       return category === -1
         ? undefined
@@ -35,30 +37,50 @@ export async function loader(args: LoaderFunctionArgs) {
             eq(transactions.categoryId, category)
           );
     },
-    with: {
-      category: true,
-      wallet: true,
-    },
+    with: { category: true, wallet: true },
   });
-  const categories = await db.query.categories.findMany({
+  const categoriesPromise = db.query.categories.findMany({
     where(fields, { eq }) {
       return eq(fields.userId, userId);
     },
   });
-  const wallets = await db.query.wallets.findMany({
+  const walletsPromise = db.query.wallets.findMany({
     where(fields, { eq }) {
       return eq(fields.userId, userId);
     },
   });
+  const balanceResultPromise = db
+    .select({
+      balance: sql<number>`sum(
+        case
+          when type = 'income' THEN cents
+          WHEN type = 'expense' THEN -cents
+        end
+      )`,
+    })
+    .from(transactionsSchema)
+    .groupBy(transactionsSchema.userId)
+    .where(eq(transactionsSchema.userId, userId));
+
+  const [transactions, categories, wallets, balanceResult] = await Promise.all([
+    transactionsPromise,
+    categoriesPromise,
+    walletsPromise,
+    balanceResultPromise,
+  ]);
+  const [{ balance }] = z
+    .array(z.object({ balance: z.coerce.number().int() }))
+    .length(1)
+    .parse(balanceResult);
 
   return json(
-    { transactions, categories, wallets, defaultCategory: category },
+    { transactions, categories, wallets, defaultCategory: category, balance },
     200
   );
 }
 
 export default function Index() {
-  const { transactions, categories, wallets, defaultCategory } =
+  const { transactions, categories, wallets, defaultCategory, balance } =
     useLoaderData<typeof loader>();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -67,7 +89,7 @@ export default function Index() {
       <div className="flex mb-4">
         <div className="shadow-md rounded-lg p-3 min-w-[200px] bg-white">
           <p className="text-sm text-slate-500">Current Balance</p>
-          <p className="mt-1.5">{formatCurrency(12345)}</p>
+          <p className="mt-1.5">{formatCurrency(balance)}</p>
         </div>
       </div>
 

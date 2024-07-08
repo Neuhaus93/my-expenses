@@ -1,4 +1,4 @@
-import { useFetcher } from "@remix-run/react";
+import { FetcherWithComponents, useFetcher } from "@remix-run/react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -22,6 +22,16 @@ export const CreateTransactionDialog = ({
   wallets: Array<{ id: number; name: string }>;
 }) => {
   const [open, setOpen] = useState(false);
+  const fetcher = useFetcher();
+
+  if (fetcher.data && open) {
+    const { ok } = z
+      .object({ ok: z.boolean() })
+      .catch({ ok: false })
+      .parse(fetcher.data);
+
+    setOpen(!ok);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -41,17 +51,17 @@ export const CreateTransactionDialog = ({
           <TabsContent value="expense">
             <TransactionForm
               type="expense"
+              fetcher={fetcher}
               categories={categories}
               wallets={wallets}
-              closeDialog={() => setOpen(false)}
             />
           </TabsContent>
           <TabsContent value="income">
             <TransactionForm
               type="income"
+              fetcher={fetcher}
               categories={categories}
               wallets={wallets}
-              closeDialog={() => setOpen(false)}
             />
           </TabsContent>
         </Tabs>
@@ -64,28 +74,18 @@ const TransactionForm = ({
   categories,
   wallets,
   type,
-  closeDialog,
+  fetcher,
 }: {
   categories: Array<{ title: string; id: number; type: "expense" | "income" }>;
   wallets: Array<{ id: number; name: string }>;
   type: "expense" | "income";
-  closeDialog: () => void;
+  fetcher: FetcherWithComponents<unknown>;
 }) => {
-  const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
-
-  const { ok } = z
-    .object({ ok: z.boolean() })
-    .catch({ ok: false })
-    .parse(fetcher.data);
-
-  if (ok) {
-    closeDialog();
-  }
 
   return (
     <fetcher.Form method="post" action="/transaction/new">
-      <input hidden name="type" value={type} />
+      <input hidden name="type" defaultValue={type} />
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="name" className="text-right">
