@@ -8,6 +8,7 @@ import {
 import { Form, useFetcher, useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 import { eq, sql } from "drizzle-orm";
+import { Trash2 } from "lucide-react";
 import { useRef } from "react";
 import { z } from "zod";
 import { CreateTransactionDialog } from "~/components/create-transaction-dialog";
@@ -190,7 +191,7 @@ const DeleteButton = ({ id }: { id: number }) => {
     <fetcher.Form method="post" action={`/transaction/${id}/delete`}>
       <input hidden name="id" defaultValue={id} />
       <Button size="sm" variant="destructive" disabled={loading}>
-        Delete
+        <Trash2 size={16} />
       </Button>
     </fetcher.Form>
   );

@@ -27,6 +27,12 @@ export default function SidebarLayout() {
             variant: getVariant("/app/categories"),
             href: "/app/categories",
           },
+          {
+            title: "Wallets",
+            icon: File,
+            variant: getVariant("/app/wallets"),
+            href: "/app/wallets",
+          },
         ]}
       />
       <div className="flex-1">

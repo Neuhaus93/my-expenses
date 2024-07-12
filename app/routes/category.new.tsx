@@ -19,6 +19,7 @@ export async function action(args: ActionFunctionArgs) {
   await db.insert(categories).values({
     title,
     userId,
+    type: "expense",
   });
 
   return json({ ok: true });
