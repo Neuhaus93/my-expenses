@@ -17,6 +17,7 @@ export async function action(args: ActionFunctionArgs) {
     wallet: z.coerce.number().int(),
     value: z.coerce.number(),
     type: z.enum(["expense", "income"]),
+    timestamp: z.coerce.date(),
   });
 
   const {
@@ -24,13 +25,14 @@ export async function action(args: ActionFunctionArgs) {
     category: categoryId,
     wallet: walletId,
     value,
+    timestamp,
   } = formSchema.parse(formObj);
   const cents = Math.floor(value * 100);
 
   await db.insert(transactions).values({
     type,
-    timestamp: new Date(),
-    userId: "user_2i7ipp18qElWdqGJFl9z5oZyL04",
+    timestamp,
+    userId,
     categoryId,
     walletId,
     cents,

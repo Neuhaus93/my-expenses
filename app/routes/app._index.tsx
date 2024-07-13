@@ -39,6 +39,9 @@ export async function loader(args: LoaderFunctionArgs) {
           );
     },
     with: { category: true, wallet: true },
+    orderBy(fields, { desc }) {
+      return [desc(fields.timestamp)];
+    },
   });
   const categoriesPromise = db.query.categories.findMany({
     where(fields, { eq }) {

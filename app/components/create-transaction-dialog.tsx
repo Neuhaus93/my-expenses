@@ -22,7 +22,8 @@ export const CreateTransactionDialog = ({
   wallets: Array<{ id: number; name: string }>;
 }) => {
   const [open, setOpen] = useState(false);
-  const fetcher = useFetcher();
+  const [fetcherKey, setFetcherKey] = useState(0);
+  const fetcher = useFetcher({ key: `create-transaction-${fetcherKey}` });
 
   if (fetcher.data && open) {
     const { ok } = z
@@ -30,7 +31,10 @@ export const CreateTransactionDialog = ({
       .catch({ ok: false })
       .parse(fetcher.data);
 
-    setOpen(!ok);
+    if (ok) {
+      setFetcherKey(fetcherKey + 1);
+      setOpen(false);
+    }
   }
 
   return (
@@ -124,6 +128,18 @@ const TransactionForm = ({
           </select>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="timestamp" className="text-right">
+            Date and Time
+          </Label>
+          <input
+            id="timestamp"
+            type="datetime-local"
+            name="timestamp"
+            defaultValue={getDefaultDateTimeVal()}
+            className="col-span-3"
+          />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="value" className="text-right">
             Value
           </Label>
@@ -145,3 +161,14 @@ const TransactionForm = ({
     </fetcher.Form>
   );
 };
+
+function getDefaultDateTimeVal() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${date}T${hours}:${minutes}`;
+}
