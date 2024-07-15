@@ -10,20 +10,32 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { IndexLoaderData } from "~/routes/app._index";
+import { v4 as uuidv4 } from "uuid";
 
-export const CreateTransactionDialog = ({
+export type UpsertTransactionDialogProps = {
+  categories: IndexLoaderData["categories"];
+  wallets: IndexLoaderData["wallets"];
+  transaction?: IndexLoaderData["transactions"][number];
+  Trigger?: ReactNode;
+};
+
+function getRandomFetcherKey() {
+  return `upsert-transaction-${uuidv4()}`;
+}
+
+export const UpsertTransactionDialog = ({
   categories,
   wallets,
-}: {
-  categories: Array<{ title: string; id: number; type: "expense" | "income" }>;
-  wallets: Array<{ id: number; name: string }>;
-}) => {
+  transaction: t,
+  Trigger,
+}: UpsertTransactionDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [fetcherKey, setFetcherKey] = useState(0);
-  const fetcher = useFetcher({ key: `create-transaction-${fetcherKey}` });
+  const [fetcherKey, setFetcherKey] = useState(getRandomFetcherKey);
+  const fetcher = useFetcher({ key: fetcherKey });
 
   if (fetcher.data && open) {
     const { ok } = z
@@ -32,30 +44,32 @@ export const CreateTransactionDialog = ({
       .parse(fetcher.data);
 
     if (ok) {
-      setFetcherKey(fetcherKey + 1);
+      setFetcherKey(getRandomFetcherKey());
       setOpen(false);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Create Transaction</Button>
-      </DialogTrigger>
+      {Trigger && <DialogTrigger asChild>{Trigger}</DialogTrigger>}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Transaction</DialogTitle>
+          <DialogTitle>{t ? "Update" : "Create New"} Transaction</DialogTitle>
         </DialogHeader>
-
-        <Tabs defaultValue="expense">
+        <Tabs defaultValue={t ? t.type : "expense"}>
           <TabsList>
-            <TabsTrigger value="expense">Expense</TabsTrigger>
-            <TabsTrigger value="income">Income</TabsTrigger>
+            <TabsTrigger value="expense" disabled={!!t}>
+              Expense
+            </TabsTrigger>
+            <TabsTrigger value="income" disabled={!!t}>
+              Income
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="expense">
             <TransactionForm
               type="expense"
               fetcher={fetcher}
+              transaction={t}
               categories={categories}
               wallets={wallets}
             />
@@ -64,6 +78,7 @@ export const CreateTransactionDialog = ({
             <TransactionForm
               type="income"
               fetcher={fetcher}
+              transaction={t}
               categories={categories}
               wallets={wallets}
             />
@@ -78,27 +93,42 @@ const TransactionForm = ({
   categories,
   wallets,
   type,
+  transaction,
   fetcher,
-}: {
-  categories: Array<{ title: string; id: number; type: "expense" | "income" }>;
-  wallets: Array<{ id: number; name: string }>;
+}: UpsertTransactionDialogProps & {
   type: "expense" | "income";
   fetcher: FetcherWithComponents<unknown>;
 }) => {
   const loading = fetcher.state !== "idle";
+  const t = z
+    .object({
+      id: z.number().or(z.literal("new")).catch("new"),
+      categoryId: z.number().catch(categories[0].id),
+      walletId: z.number().catch(wallets[0].id),
+      timestamp: z.string().catch(Date().toString()),
+      cents: z.number().catch(0),
+    })
+    .transform((obj) => ({
+      id: obj.id,
+      categoryId: obj.categoryId,
+      walletId: obj.walletId,
+      date: new Date(obj.timestamp),
+      value: obj.cents === 0 ? undefined : obj.cents / 100,
+    }))
+    .parse(transaction ?? {});
 
   return (
-    <fetcher.Form method="post" action="/transaction/new">
+    <fetcher.Form method="post" action={`/transaction/${t.id}`}>
       <input hidden name="type" defaultValue={type} />
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="name" className="text-right">
+          <Label htmlFor="name" className="text-left">
             Category
           </Label>
           <select
             id="category"
             name="category"
-            defaultValue={categories[0].id}
+            defaultValue={t.categoryId}
             className="col-span-3"
           >
             {categories
@@ -111,13 +141,13 @@ const TransactionForm = ({
           </select>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="wallet" className="text-right">
+          <Label htmlFor="wallet" className="text-left">
             Wallet
           </Label>
           <select
             id="wallet"
             name="wallet"
-            defaultValue={wallets[0].id}
+            defaultValue={t.walletId}
             className="col-span-3"
           >
             {wallets.map((w) => (
@@ -128,19 +158,19 @@ const TransactionForm = ({
           </select>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="timestamp" className="text-right">
+          <Label htmlFor="timestamp" className="text-left">
             Date and Time
           </Label>
           <input
             id="timestamp"
             type="datetime-local"
             name="timestamp"
-            defaultValue={getDefaultDateTimeVal()}
+            defaultValue={getDateTimeVal(t.date)}
             className="col-span-3"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="value" className="text-right">
+          <Label htmlFor="value" className="text-left">
             Value
           </Label>
           <Input
@@ -149,21 +179,21 @@ const TransactionForm = ({
             id="value"
             name="value"
             className="col-span-3"
+            defaultValue={t.value}
           />
         </div>
       </div>
 
       <DialogFooter>
         <Button variant="default" type="submit" disabled={loading}>
-          Create
+          {t ? "Update" : "Create"}
         </Button>
       </DialogFooter>
     </fetcher.Form>
   );
 };
 
-function getDefaultDateTimeVal() {
-  const now = new Date();
+function getDateTimeVal(now: Date) {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const date = String(now.getDate()).padStart(2, "0");

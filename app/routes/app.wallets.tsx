@@ -27,6 +27,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .from(transactions)
     .rightJoin(walletsTable, eq(transactions.walletId, walletsTable.id))
     .where(eq(walletsTable.userId, userId))
+    .orderBy(walletsTable.name)
     .groupBy(transactions.userId, walletsTable.id);
 
   return { wallets };

@@ -8,11 +8,11 @@ import {
 import { Form, useFetcher, useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 import { eq, sql } from "drizzle-orm";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import { useRef } from "react";
 import { z } from "zod";
-import { CreateTransactionDialog } from "~/components/create-transaction-dialog";
 import { Button } from "~/components/ui/button";
+import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
@@ -83,6 +83,8 @@ export async function loader(args: LoaderFunctionArgs) {
   );
 }
 
+export type IndexLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
+
 export default function Index() {
   const { transactions, categories, wallets, defaultCategory, balance } =
     useLoaderData<typeof loader>();
@@ -136,7 +138,11 @@ export default function Index() {
         </button>
       </Form>
 
-      <CreateTransactionDialog categories={categories} wallets={wallets} />
+      <UpsertTransactionDialog
+        categories={categories}
+        wallets={wallets}
+        Trigger={<Button>Create Transaction</Button>}
+      />
 
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -174,8 +180,19 @@ export default function Index() {
                 <td className="px-6 py-4">
                   {format(t.timestamp, "dd MMM, yyyy")}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 flex gap-1">
                   <DeleteButton id={t.id} />
+
+                  <UpsertTransactionDialog
+                    categories={categories}
+                    wallets={wallets}
+                    transaction={t}
+                    Trigger={
+                      <Button size="sm" variant="default">
+                        <Pencil size={16} />
+                      </Button>
+                    }
+                  />
                 </td>
               </tr>
             ))}
