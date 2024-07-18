@@ -6,10 +6,16 @@ import {
   redirect,
 } from "@remix-run/node";
 import { Form, useFetcher, useLoaderData } from "@remix-run/react";
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { format } from "date-fns";
 import { eq, sql } from "drizzle-orm";
-import { Trash2, Pencil } from "lucide-react";
-import { useRef } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
@@ -82,13 +88,85 @@ export async function loader(args: LoaderFunctionArgs) {
     200
   );
 }
-
 export type IndexLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
+
+const columnHelper =
+  createColumnHelper<IndexLoaderData["transactions"][number]>();
+
+const columns = [
+  columnHelper.accessor("timestamp", {
+    header: "Date",
+    cell: (info) => format(info.getValue(), "dd MMM, yyyy"),
+  }),
+  columnHelper.accessor("description", {
+    cell: (info) => info.getValue(),
+  }),
+  columnHelper.accessor("category.title", {
+    header: "Category",
+    cell: (info) => info.getValue(),
+  }),
+  columnHelper.accessor("wallet.name", {
+    header: "Wallet",
+    cell: (info) => info.getValue(),
+  }),
+  columnHelper.accessor("cents", {
+    header: "Value",
+    cell: ({ getValue, row }) => (
+      <div
+        className={
+          row.original.type === "income" ? "text-green-600" : "text-red-600"
+        }
+      >
+        {formatCurrency(getValue())}
+      </div>
+    ),
+  }),
+  columnHelper.display({
+    id: "actions",
+    header: "Actions",
+    cell: ({
+      row: { original },
+      table: {
+        options: { meta },
+      },
+    }) => {
+      return (
+        <div className="flex gap-1">
+          <DeleteButton id={original.id} />
+
+          <Button
+            size="sm"
+            variant="ghost"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onClick={() => (meta as any)?.onClickEdit(original)}
+          >
+            <Pencil size={16} />
+          </Button>
+        </div>
+      );
+    },
+  }),
+];
 
 export default function Index() {
   const { transactions, categories, wallets, defaultCategory, balance } =
     useLoaderData<typeof loader>();
+  const [open, setOpen] = useState(false);
+  const [editTransaction, setEditTransaction] = useState<
+    (typeof transactions)[number] | null
+  >(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const table = useReactTable({
+    data: transactions,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    meta: {
+      onClickEdit: (transaction: (typeof transactions)[number]) => {
+        setEditTransaction(transaction);
+      },
+    },
+  });
 
   return (
     <div className="px-4 py-6">
@@ -139,61 +217,49 @@ export default function Index() {
       </Form>
 
       <UpsertTransactionDialog
+        open={!!editTransaction || open}
+        onClose={() => {
+          setOpen(false);
+          setEditTransaction(null);
+        }}
         categories={categories}
         wallets={wallets}
-        Trigger={<Button>Create Transaction</Button>}
+        transaction={editTransaction}
+        Trigger={
+          <Button onClick={() => setOpen(true)}>Create Transaction</Button>
+        }
       />
 
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-            <tr>
-              {TABLE_COLS.map((col) => (
-                <th key={col} scope="col" className="px-6 py-3">
-                  {col}
-                </th>
-              ))}
-            </tr>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} scope="col" className="px-6 py-3">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
           </thead>
 
           <tbody>
-            {transactions.map((t) => (
+            {table.getRowModel().rows.map((row) => (
               <tr
-                key={t.id}
+                key={row.id}
                 className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
               >
-                <th
-                  scope="row"
-                  className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                >
-                  {t.category.title}
-                </th>
-                <td className="px-6 py-4">{t.wallet.name}</td>
-                <td className="px-6 py-4">{t.description}</td>
-                <td
-                  className={`px-6 py-4 ${
-                    t.type === "income" ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {formatCurrency(t.cents)}
-                </td>
-                <td className="px-6 py-4">
-                  {format(t.timestamp, "dd MMM, yyyy")}
-                </td>
-                <td className="px-6 py-4 flex gap-1">
-                  <DeleteButton id={t.id} />
-
-                  <UpsertTransactionDialog
-                    categories={categories}
-                    wallets={wallets}
-                    transaction={t}
-                    Trigger={
-                      <Button size="sm" variant="default">
-                        <Pencil size={16} />
-                      </Button>
-                    }
-                  />
-                </td>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-6 py-4">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -210,8 +276,8 @@ const DeleteButton = ({ id }: { id: number }) => {
   return (
     <fetcher.Form method="post" action={`/transaction/${id}/delete`}>
       <input hidden name="id" defaultValue={id} />
-      <Button size="sm" variant="destructive" disabled={loading}>
-        <Trash2 size={16} />
+      <Button size="sm" variant="ghost" disabled={loading}>
+        <Trash2 size={16} className="text-red-500" />
       </Button>
     </fetcher.Form>
   );
@@ -227,12 +293,3 @@ export async function action({ request }: ActionFunctionArgs) {
 
   return redirect(category === -1 ? "/app" : `/app?category=${category}`);
 }
-
-const TABLE_COLS = [
-  "Category",
-  "Wallet",
-  "Description",
-  "Value",
-  "Date",
-  "Actions",
-];

@@ -17,9 +17,11 @@ import { IndexLoaderData } from "~/routes/app._index";
 import { v4 as uuidv4 } from "uuid";
 
 export type UpsertTransactionDialogProps = {
+  open: boolean;
+  onClose: () => void;
   categories: IndexLoaderData["categories"];
   wallets: IndexLoaderData["wallets"];
-  transaction?: IndexLoaderData["transactions"][number];
+  transaction?: IndexLoaderData["transactions"][number] | null;
   Trigger?: ReactNode;
 };
 
@@ -28,12 +30,13 @@ function getRandomFetcherKey() {
 }
 
 export const UpsertTransactionDialog = ({
+  open,
+  onClose,
   categories,
   wallets,
   transaction: t,
   Trigger,
 }: UpsertTransactionDialogProps) => {
-  const [open, setOpen] = useState(false);
   const [fetcherKey, setFetcherKey] = useState(getRandomFetcherKey);
   const fetcher = useFetcher({ key: fetcherKey });
 
@@ -45,12 +48,17 @@ export const UpsertTransactionDialog = ({
 
     if (ok) {
       setFetcherKey(getRandomFetcherKey());
-      setOpen(false);
+      onClose();
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        if (!newOpen) onClose();
+      }}
+    >
       {Trigger && <DialogTrigger asChild>{Trigger}</DialogTrigger>}
       <DialogContent>
         <DialogHeader>
@@ -95,7 +103,7 @@ const TransactionForm = ({
   type,
   transaction,
   fetcher,
-}: UpsertTransactionDialogProps & {
+}: Omit<UpsertTransactionDialogProps, "open" | "onClose"> & {
   type: "expense" | "income";
   fetcher: FetcherWithComponents<unknown>;
 }) => {
