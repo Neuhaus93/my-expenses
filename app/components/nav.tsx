@@ -1,13 +1,12 @@
+import { Link } from "@remix-run/react";
 import { LucideIcon } from "lucide-react";
-
-import { cn } from "~/lib/utils";
 import { buttonVariants } from "~/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { Link } from "@remix-run/react";
+import { cn } from "~/lib/utils";
 
 interface NavProps {
   isCollapsed: boolean;

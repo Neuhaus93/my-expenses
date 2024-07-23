@@ -1,8 +1,8 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "~/db/config.server";
 import { transactions } from "~/db/schema.server";
-import { z } from "zod";
-import { eq } from "drizzle-orm";
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();

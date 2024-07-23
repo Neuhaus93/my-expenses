@@ -1,9 +1,9 @@
+import { getAuth } from "@clerk/remix/ssr.server";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "~/db/config.server";
 import { transactions } from "~/db/schema.server";
-import { z } from "zod";
-import { getAuth } from "@clerk/remix/ssr.server";
-import { eq } from "drizzle-orm";
 
 export async function action(args: ActionFunctionArgs) {
   const { userId } = await getAuth(args);

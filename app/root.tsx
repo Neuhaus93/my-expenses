@@ -1,9 +1,13 @@
+import { TooltipProvider } from "./components/ui/tooltip";
+import appStylesHref from "./globals.css?url";
+// Import ClerkApp
+import { ClerkApp } from "@clerk/remix";
+import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import type {
   LinksFunction,
   LoaderFunction,
   MetaFunction,
 } from "@remix-run/node";
-
 import {
   Links,
   Meta,
@@ -12,12 +16,6 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 
-import { rootAuthLoader } from "@clerk/remix/ssr.server";
-// Import ClerkApp
-import { ClerkApp } from "@clerk/remix";
-
-import appStylesHref from "./globals.css?url";
-import { TooltipProvider } from "./components/ui/tooltip";
 // import "./globals.css";
 
 export const meta: MetaFunction = () => [
