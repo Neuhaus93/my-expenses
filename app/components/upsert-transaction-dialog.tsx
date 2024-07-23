@@ -1,4 +1,11 @@
-import { Button } from "./ui/button";
+import { FetcherWithComponents, useFetcher } from "@remix-run/react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { ReactNode, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
+import { Button } from "~/components/ui/button";
+import { Calendar } from "~/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -6,15 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Select } from "./ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { FetcherWithComponents, useFetcher } from "@remix-run/react";
-import { ReactNode, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-import { z } from "zod";
+} from "~/components/ui/dialog";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import { Select } from "~/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { IndexLoaderData } from "~/routes/app._index";
 
 export type UpsertTransactionDialogProps = {
@@ -125,6 +133,7 @@ const TransactionForm = ({
       value: obj.cents === 0 ? undefined : obj.cents / 100,
     }))
     .parse(transaction ?? {});
+  const [date, setDate] = useState<Date | undefined>(t.date);
 
   return (
     <fetcher.Form method="post" action={`/transaction/${t.id}`}>
@@ -171,11 +180,26 @@ const TransactionForm = ({
           </Label>
           <input
             id="timestamp"
-            type="datetime-local"
             name="timestamp"
-            defaultValue={getDateTimeVal(t.date)}
-            className="col-span-3"
+            value={getDateTimeVal(date)}
+            hidden
           />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                type="button"
+                className="col-span-3 font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP HH:mm") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent>
+              <Calendar mode="single" selected={date} onSelect={setDate} />
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="value" className="text-left">
@@ -194,14 +218,14 @@ const TransactionForm = ({
 
       <DialogFooter>
         <Button variant="default" type="submit" disabled={loading}>
-          {t ? "Update" : "Create"}
+          {t.id === "new" ? "Create" : "Update"}
         </Button>
       </DialogFooter>
     </fetcher.Form>
   );
 };
 
-function getDateTimeVal(now: Date) {
+function getDateTimeVal(now = new Date()) {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const date = String(now.getDate()).padStart(2, "0");
