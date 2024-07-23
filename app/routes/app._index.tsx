@@ -15,7 +15,7 @@ import {
 import { format } from "date-fns";
 import { eq, sql } from "drizzle-orm";
 import { Pencil, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Select } from "~/components/ui/my-select";
@@ -275,8 +275,19 @@ const DeleteButton = ({ id }: { id: number }) => {
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (confirm("Are you sure you want to delete this transaction?")) {
+      fetcher.submit(event.currentTarget, {
+        action: `/transaction/${id}/delete`,
+        method: "POST",
+      });
+    }
+  };
+
   return (
-    <fetcher.Form method="post" action={`/transaction/${id}/delete`}>
+    <fetcher.Form method="post" onSubmit={handleSubmit}>
       <input hidden name="id" defaultValue={id} />
       <Button size="sm" variant="ghost" disabled={loading}>
         <Trash2 size={16} className="text-red-500" />
