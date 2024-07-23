@@ -18,7 +18,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { Select } from "~/components/ui/select";
+import { Select } from "~/components/ui/my-select";
 import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
