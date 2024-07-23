@@ -15,6 +15,7 @@ import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { IndexLoaderData } from "~/routes/app._index";
 import { v4 as uuidv4 } from "uuid";
+import { Select } from "./ui/select";
 
 export type UpsertTransactionDialogProps = {
   open: boolean;
@@ -133,8 +134,7 @@ const TransactionForm = ({
           <Label htmlFor="name" className="text-left">
             Category
           </Label>
-          <select
-            id="category"
+          <Select
             name="category"
             defaultValue={t.categoryId}
             className="col-span-3"
@@ -146,13 +146,13 @@ const TransactionForm = ({
                   {c.title}
                 </option>
               ))}
-          </select>
+          </Select>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="wallet" className="text-left">
             Wallet
           </Label>
-          <select
+          <Select
             id="wallet"
             name="wallet"
             defaultValue={t.walletId}
@@ -163,7 +163,7 @@ const TransactionForm = ({
                 {w.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="timestamp" className="text-left">

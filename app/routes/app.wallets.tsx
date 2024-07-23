@@ -40,11 +40,11 @@ export default function WalletsPage() {
     <div className="mx-4 my-6">
       <h1 className="text-lg font-semibold">Wallets Page</h1>
 
-      <div className="grid grid-cols-2 mt-3 gap-4">
+      <div className="mt-3 grid grid-cols-2 gap-4">
         {wallets.map((wallet) => (
           <div
             key={wallet.id}
-            className="shadow-md rounded-lg p-3 min-w-[200px] bg-white"
+            className="min-w-[200px] rounded-lg bg-white p-3 shadow-md"
           >
             <p className="text-sm text-slate-500">{wallet.name}</p>
             <p className="mt-1.5">{formatCurrency(wallet.balance)}</p>

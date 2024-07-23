@@ -33,7 +33,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="mx-4 my-6">
-      <h1 className="text-lg font-semibold mb-3">Categories Page</h1>
+      <h1 className="mb-3 text-lg font-semibold">Categories Page</h1>
 
       <CreateCategoryDialog />
 

@@ -18,6 +18,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
+import { Select } from "~/components/ui/select";
 import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
@@ -41,7 +42,7 @@ export async function loader(args: LoaderFunctionArgs) {
         ? undefined
         : and(
             eq(transactions.userId, userId),
-            eq(transactions.categoryId, category)
+            eq(transactions.categoryId, category),
           );
     },
     with: { category: true, wallet: true },
@@ -81,11 +82,12 @@ export async function loader(args: LoaderFunctionArgs) {
   const [{ balance }] = z
     .array(z.object({ balance: z.coerce.number().int() }))
     .length(1)
+    .catch([{ balance: 0 }])
     .parse(balanceResult);
 
   return json(
     { transactions, categories, wallets, defaultCategory: category, balance },
-    200
+    200,
   );
 }
 export type IndexLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
@@ -170,8 +172,8 @@ export default function Index() {
 
   return (
     <div className="px-4 py-6">
-      <div className="flex mb-4">
-        <div className="shadow-md rounded-lg p-3 min-w-[200px] bg-white">
+      <div className="mb-4 flex">
+        <div className="min-w-[200px] rounded-lg bg-white p-3 shadow-md">
           <p className="text-sm text-slate-500">Current Balance</p>
           <p className="mt-1.5">{formatCurrency(balance)}</p>
         </div>
@@ -180,27 +182,27 @@ export default function Index() {
       <Form
         ref={formRef}
         method="post"
-        className="flex items-end space-x-2 mb-8"
+        className="mb-8 flex items-end space-x-2"
       >
         <div className="w-[180px]">
           <label
             htmlFor="category"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
           >
             Select an option
           </label>
-          <select
+          <Select
             id="category"
             name="category"
             defaultValue={defaultCategory}
             onChange={() => {
               if (formRef.current) {
                 formRef.current.dispatchEvent(
-                  new Event("submit", { cancelable: true, bubbles: true })
+                  new Event("submit", { cancelable: true, bubbles: true }),
                 );
               }
             }}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
           >
             <option value="-1">All Categories</option>
             {categories.map((category) => (
@@ -208,7 +210,7 @@ export default function Index() {
                 {category.title}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <button type="submit" className="sr-only">
@@ -230,9 +232,9 @@ export default function Index() {
         }
       />
 
-      <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
-        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <div className="relative mt-2 overflow-x-auto shadow-md sm:rounded-lg">
+        <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400 rtl:text-right">
+          <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -241,7 +243,7 @@ export default function Index() {
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </th>
                 ))}
@@ -253,7 +255,7 @@ export default function Index() {
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
+                className="border-b odd:bg-white even:bg-gray-50 dark:border-gray-700 odd:dark:bg-gray-900 even:dark:bg-gray-800"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-6 py-4">
