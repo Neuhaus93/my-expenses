@@ -1,9 +1,9 @@
 import { getAuth } from "@clerk/remix/ssr.server";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { sql, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "~/db/config.server";
-import { wallets as walletsTable, transactions } from "~/db/schema.server";
+import { transactions, wallets as walletsTable } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
 
 export async function loader(args: LoaderFunctionArgs) {
