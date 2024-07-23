@@ -1,11 +1,9 @@
+import { DateTimePicker } from "./ui/date-time-picker";
 import { FetcherWithComponents, useFetcher } from "@remix-run/react";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { Calendar } from "~/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -16,12 +14,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
-import { Select } from "~/components/ui/select";
+import { Select } from "~/components/ui/my-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { IndexLoaderData } from "~/routes/app._index";
 
@@ -184,22 +177,14 @@ const TransactionForm = ({
             value={getDateTimeVal(date)}
             hidden
           />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                type="button"
-                className="col-span-3 font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP HH:mm") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-
-            <PopoverContent>
-              <Calendar mode="single" selected={date} onSelect={setDate} />
-            </PopoverContent>
-          </Popover>
+          <DateTimePicker
+            displayFormat={{ hour24: "PPP HH:mm" }}
+            className="col-span-3 w-full"
+            granularity="minute"
+            hourCycle={24}
+            value={date}
+            onChange={setDate}
+          />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="value" className="text-left">
@@ -212,6 +197,7 @@ const TransactionForm = ({
             name="value"
             className="col-span-3"
             defaultValue={t.value}
+            placeholder="R$ 0.00"
           />
         </div>
       </div>

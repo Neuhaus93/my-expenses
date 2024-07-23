@@ -17,10 +17,8 @@ import { eq, sql } from "drizzle-orm";
 import { Pencil, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { z } from "zod";
-import { DateTimePickerForm } from "~/components/date-time-picker-form";
 import { Button } from "~/components/ui/button";
-import { Calendar } from "~/components/ui/calendar";
-import { Select } from "~/components/ui/select";
+import { Select } from "~/components/ui/my-select";
 import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
@@ -219,10 +217,6 @@ export default function Index() {
           Filter
         </button>
       </Form>
-
-      <DateTimePickerForm />
-
-      <Calendar />
 
       <UpsertTransactionDialog
         open={!!editTransaction || open}

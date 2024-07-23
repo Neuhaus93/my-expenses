@@ -76,6 +76,7 @@ module.exports = {
       ],
       rules: {
         "@typescript-eslint/no-unused-vars": "warn",
+        "jsx-a11y/label-has-associated-control": "off",
       },
     },
 
