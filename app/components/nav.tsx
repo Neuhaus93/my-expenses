@@ -1,3 +1,4 @@
+import { SignOutButton } from "@clerk/remix";
 import { Link } from "@remix-run/react";
 import { LucideIcon } from "lucide-react";
 import { buttonVariants } from "~/components/ui/button";
@@ -21,11 +22,9 @@ interface NavProps {
 
 export function Nav({ links, isCollapsed }: NavProps) {
   return (
-    <div
-      data-collapsed={isCollapsed}
-      className="group flex flex-col gap-4 py-2 data-[collapsed=true]:py-2"
-    >
-      <nav className="mt-4 grid gap-2 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
+    <nav className="fixed left-0 top-0 w-[180px] bottom-0 gap-4 flex py-2 px-2 flex-col justify-between">
+      <div className="flex flex-col gap-2">
+        <h2 className="mb-4 mt-2 italic text-lg pl-3">My Expenses</h2>
         {links.map((link, index) =>
           isCollapsed ? (
             <Tooltip key={index} delayDuration={0}>
@@ -79,7 +78,10 @@ export function Nav({ links, isCollapsed }: NavProps) {
             </Link>
           ),
         )}
-      </nav>
-    </div>
+      </div>
+      <SignOutButton>
+        <button className="mb-4">Logout</button>
+      </SignOutButton>
+    </nav>
   );
 }

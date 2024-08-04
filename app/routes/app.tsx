@@ -35,7 +35,7 @@ export default function SidebarLayout() {
           },
         ]}
       />
-      <div className="flex-1">
+      <div className="flex-1 pl-[180px]">
         <Outlet />
       </div>
     </div>
