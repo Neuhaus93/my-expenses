@@ -22,7 +22,10 @@ interface NavProps {
 
 export function Nav({ links, isCollapsed }: NavProps) {
   return (
-    <nav className="fixed left-0 top-0 w-[180px] bottom-0 gap-4 flex py-2 px-2 flex-col justify-between">
+    <nav
+      data-collapsed={isCollapsed}
+      className="fixed group left-0 top-0 w-[180px] bottom-0 gap-4 flex py-2 px-2 flex-col justify-between"
+    >
       <div className="flex flex-col gap-2">
         <h2 className="mb-4 mt-2 italic text-lg pl-3">My Expenses</h2>
         {links.map((link, index) =>
@@ -80,7 +83,14 @@ export function Nav({ links, isCollapsed }: NavProps) {
         )}
       </div>
       <SignOutButton>
-        <button className="mb-4">Logout</button>
+        <button
+          className={cn(
+            buttonVariants({ variant: "outline", size: "icon" }),
+            "mb-4 w-full text-start",
+          )}
+        >
+          Logout
+        </button>
       </SignOutButton>
     </nav>
   );

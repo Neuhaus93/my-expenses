@@ -54,10 +54,16 @@ export async function loader(args: LoaderFunctionArgs) {
     where(fields, { eq }) {
       return eq(fields.userId, userId);
     },
+    orderBy(fields, operators) {
+      return [operators.asc(fields.title)];
+    },
   });
   const walletsPromise = db.query.wallets.findMany({
     where(fields, { eq }) {
       return eq(fields.userId, userId);
+    },
+    orderBy(fields, operators) {
+      return [operators.asc(fields.name)];
     },
   });
   const balanceResultPromise = db
@@ -65,6 +71,7 @@ export async function loader(args: LoaderFunctionArgs) {
       balance: sql<number>`sum(
         case
           when type = 'income' THEN cents
+          WHEN type = 'transference' THEN cents
           WHEN type = 'expense' THEN -cents
         end
       )`,
@@ -98,7 +105,7 @@ const columnHelper =
 const columns = [
   columnHelper.accessor("timestamp", {
     header: "Date",
-    cell: (info) => format(info.getValue(), "dd MMM, yyyy"),
+    cell: (info) => format(info.getValue(), "PPP HH:mm"),
   }),
   columnHelper.accessor("description", {
     cell: (info) => info.getValue(),

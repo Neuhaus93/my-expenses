@@ -23,7 +23,8 @@ export async function loader(args: LoaderFunctionArgs) {
   const categories = await db
     .select()
     .from(categoriesTable)
-    .where(eq(categoriesTable.userId, userId));
+    .where(eq(categoriesTable.userId, userId))
+    .orderBy(categoriesTable.title);
 
   return { categories };
 }

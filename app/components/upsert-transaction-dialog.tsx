@@ -1,4 +1,6 @@
 import { DateTimePicker } from "./ui/date-time-picker";
+import { Textarea } from "./ui/textarea";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { FetcherWithComponents, useFetcher } from "@remix-run/react";
 import { ReactNode, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -7,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -65,6 +68,9 @@ export const UpsertTransactionDialog = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t ? "Update" : "Create New"} Transaction</DialogTitle>
+          <VisuallyHidden>
+            <DialogDescription>{`${t ? "Update" : "Create"} a transaction here. Click ${t ? "update" : "create"} when you're done`}</DialogDescription>
+          </VisuallyHidden>
         </DialogHeader>
         <Tabs defaultValue={t ? t.type : "expense"}>
           <TabsList>
@@ -117,6 +123,7 @@ const TransactionForm = ({
       walletId: z.number().catch(wallets[0].id),
       timestamp: z.string().catch(Date().toString()),
       cents: z.number().catch(0),
+      description: z.string().catch(""),
     })
     .transform((obj) => ({
       id: obj.id,
@@ -124,6 +131,7 @@ const TransactionForm = ({
       walletId: obj.walletId,
       date: new Date(obj.timestamp),
       value: obj.cents === 0 ? undefined : obj.cents / 100,
+      description: obj.description,
     }))
     .parse(transaction ?? {});
   const [date, setDate] = useState<Date | undefined>(t.date);
@@ -175,6 +183,7 @@ const TransactionForm = ({
             id="timestamp"
             name="timestamp"
             value={getDateTimeVal(date)}
+            readOnly
             hidden
           />
           <DateTimePicker
@@ -198,6 +207,17 @@ const TransactionForm = ({
             className="col-span-3"
             defaultValue={t.value}
             placeholder="R$ 0.00"
+          />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="description" className="text-left">
+            Description
+          </Label>
+          <Textarea
+            id="description"
+            name="description"
+            className="col-span-3"
+            defaultValue={t.description}
           />
         </div>
       </div>
