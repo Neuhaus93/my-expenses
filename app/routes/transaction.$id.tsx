@@ -20,6 +20,7 @@ export async function action(args: ActionFunctionArgs) {
     value: z.coerce.number(),
     type: z.enum(["expense", "income"]),
     timestamp: z.coerce.date(),
+    description: z.string().min(1).trim().nullable().catch(null),
   });
 
   const {
@@ -29,8 +30,9 @@ export async function action(args: ActionFunctionArgs) {
     wallet: walletId,
     value,
     timestamp,
+    description,
   } = formSchema.parse({ ...formObj, id: args.params.id });
-  const cents = Math.floor(value * 100);
+  const cents = Math.round(value * 100);
 
   if (id === "new") {
     await db.insert(transactions).values({
@@ -40,6 +42,7 @@ export async function action(args: ActionFunctionArgs) {
       categoryId,
       walletId,
       cents,
+      description,
     });
   } else {
     await db
@@ -51,6 +54,7 @@ export async function action(args: ActionFunctionArgs) {
         categoryId,
         walletId,
         cents,
+        description,
       })
       .where(eq(transactions.id, id));
   }
