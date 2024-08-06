@@ -1,16 +1,9 @@
 import { getAuth } from "@clerk/remix/ssr.server";
+import { Table } from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { eq } from "drizzle-orm";
-import { CreateCategoryDialog } from "~/components/create-category-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
+import { CreateCategoryModal } from "~/components/create-category-modal";
 import { db } from "~/db/config.server";
 import { categories as categoriesTable } from "~/db/schema.server";
 
@@ -36,23 +29,23 @@ export default function CategoriesPage() {
     <div className="mx-4 my-6">
       <h1 className="mb-3 text-lg font-semibold">Categories Page</h1>
 
-      <CreateCategoryDialog />
+      <CreateCategoryModal />
 
       <Table className="mt-2">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Name</TableHead>
-            <TableHead>Type</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th className="w-[100px]">Name</Table.Th>
+            <Table.Th>Type</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
           {categories.map((category) => (
-            <TableRow key={category.id}>
-              <TableCell className="font-medium">{category.title}</TableCell>
-              <TableCell>{category.type}</TableCell>
-            </TableRow>
+            <Table.Tr key={category.id}>
+              <Table.Td className="font-medium">{category.title}</Table.Td>
+              <Table.Td>{category.type}</Table.Td>
+            </Table.Tr>
           ))}
-        </TableBody>
+        </Table.Tbody>
       </Table>
     </div>
   );
