@@ -1,5 +1,6 @@
 import {
   Button,
+  Flex,
   Modal,
   NativeSelect,
   SegmentedControl,
@@ -11,8 +12,7 @@ import { FetcherWithComponents, useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
-import { DialogFooter } from "~/components/ui/dialog";
-import { Label } from "~/components/ui/label";
+import { Label } from "~/components/label";
 import { IndexLoaderData } from "~/routes/app._index";
 
 export type UpsertTransactionDialogProps = {
@@ -58,6 +58,7 @@ export const UpsertTransactionModal = ({
       onClose={onClose}
       title="Create Transaction"
       centered
+      size="lg"
     >
       <SegmentedControl
         data={["expense", "income"]}
@@ -66,6 +67,7 @@ export const UpsertTransactionModal = ({
         onChange={(value) =>
           setTab(z.enum(["expense", "income"]).catch("expense").parse(value))
         }
+        fullWidth
       />
       <TransactionForm
         type={tab}
@@ -114,10 +116,11 @@ const TransactionForm = ({
       <input hidden name="type" defaultValue={type} />
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="name" className="text-left">
+          <Label htmlFor="category" size="md">
             Category
           </Label>
           <NativeSelect
+            id="category"
             name="category"
             defaultValue={t.categoryId}
             className="col-span-3"
@@ -160,6 +163,7 @@ const TransactionForm = ({
             Date and Time
           </Label>
           <DateTimePicker
+            id="timestamp"
             value={date}
             onChange={setDate}
             className="col-span-3"
@@ -193,11 +197,11 @@ const TransactionForm = ({
         </div>
       </div>
 
-      <DialogFooter>
+      <Flex justify="flex-end">
         <Button type="submit" disabled={loading}>
           {t.id === "new" ? "Create" : "Update"}
         </Button>
-      </DialogFooter>
+      </Flex>
     </fetcher.Form>
   );
 };

@@ -3,7 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useFetcher } from "@remix-run/react";
 import { useEffect } from "react";
 import { z } from "zod";
-import { Label } from "~/components/ui/label";
+import { Label } from "~/components/label";
 
 export const CreateCategoryModal = () => {
   const [opened, { open, close }] = useDisclosure(false);
