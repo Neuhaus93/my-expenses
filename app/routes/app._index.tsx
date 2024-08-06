@@ -41,14 +41,35 @@ export async function loader(args: LoaderFunctionArgs) {
 
   const url = new URL(args.request.url);
   const searchParamsObj = Object.fromEntries(url.searchParams);
-  const { category } = z
-    .object({ category: z.coerce.number().int().catch(-1) })
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const { category, month, year } = z
+    .object({
+      category: z.coerce.number().int().catch(-1),
+      month: z.coerce.number().int().gte(0).lte(11).catch(currentMonth),
+      year: z.coerce.number().int().gte(1900).catch(currentYear),
+    })
     .parse(searchParamsObj);
 
+  const date = new Date();
+  date.setUTCFullYear(year);
+  date.setUTCMonth(month);
+  date.setUTCDate(1);
+  date.setUTCHours(0, 0, 0, 0);
+
+  const dateMonthLater = new Date();
+  dateMonthLater.setUTCFullYear(month === 11 ? year + 1 : year);
+  dateMonthLater.setUTCMonth(month === 11 ? 0 : month + 1);
+  dateMonthLater.setUTCDate(1);
+  dateMonthLater.setUTCHours(0, 0, 0, 0);
+
   const transactionsPromise = db.query.transactions.findMany({
-    where: (transactions, { and, eq }) => {
+    where: (transactions, { and, eq, gte, lt }) => {
       return and(
         eq(transactions.userId, userId),
+        gte(transactions.timestamp, date),
+        lt(transactions.timestamp, dateMonthLater),
         category === -1 ? undefined : eq(transactions.categoryId, category),
       );
     },
@@ -128,13 +149,12 @@ const columns = [
   columnHelper.accessor("cents", {
     header: "Value",
     cell: ({ getValue, row }) => (
-      <div
-        className={
-          row.original.type === "income" ? "text-green-600" : "text-red-600"
-        }
+      <Text
+        style={{ fontSize: "inherit" }}
+        c={row.original.type === "income" ? "green" : "red"}
       >
         {formatCurrency(getValue())}
-      </div>
+      </Text>
     ),
   }),
   columnHelper.display({
@@ -317,12 +337,15 @@ const DeleteButton = ({ id }: { id: number }) => {
 };
 
 export async function action({ request }: ActionFunctionArgs) {
+  const url = new URL(request.url);
+  const searchParams = new URLSearchParams(url.search);
   const formData = await request.formData();
 
   const formObj = Object.fromEntries(formData.entries());
   const { category } = z
     .object({ category: z.coerce.number().int().catch(-1) })
     .parse(formObj);
+  if (category !== -1) searchParams.set("category", category.toString());
 
-  return redirect(category === -1 ? "/app" : `/app?category=${category}`);
+  return redirect(`/app${searchParams.toString() ? `?${searchParams}` : ""}`);
 }
