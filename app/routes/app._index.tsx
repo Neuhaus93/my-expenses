@@ -1,5 +1,12 @@
 import { getAuth } from "@clerk/remix/ssr.server";
 import {
+  Button as MUIButton,
+  Select as MUISelect,
+  MenuItem as MUIMenuItem,
+  FormControl as MUIFormControl,
+  InputLabel as MUIInputLabel,
+} from "@mui/material";
+import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
   json,
@@ -191,17 +198,20 @@ export default function Index() {
         method="post"
         className="mb-8 flex items-end space-x-2"
       >
-        <div className="w-[180px]">
-          <label
-            htmlFor="category"
-            className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+        <MUIFormControl className="w-[180px]">
+          <MUIInputLabel
+            id="select-category-label"
+            // htmlFor="category"
+            // className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
           >
             Select an option
-          </label>
-          <Select
+          </MUIInputLabel>
+          <MUISelect
+            labelId="select-category-label"
             id="category"
             name="category"
-            defaultValue={defaultCategory}
+            value={defaultCategory === -1 ? "" : defaultCategory}
+            label="All Categories"
             onChange={() => {
               if (formRef.current) {
                 formRef.current.dispatchEvent(
@@ -209,16 +219,18 @@ export default function Index() {
                 );
               }
             }}
-            className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+            // className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
           >
-            <option value="-1">All Categories</option>
+            <MUIMenuItem value="">
+              <em>None</em>
+            </MUIMenuItem>
             {categories.map((category) => (
-              <option key={category.id} value={category.id}>
+              <MUIMenuItem key={category.id} value={category.id}>
                 {category.title}
-              </option>
+              </MUIMenuItem>
             ))}
-          </Select>
-        </div>
+          </MUISelect>
+        </MUIFormControl>
 
         <button type="submit" className="sr-only">
           Filter
@@ -235,7 +247,9 @@ export default function Index() {
         wallets={wallets}
         transaction={editTransaction}
         Trigger={
-          <Button onClick={() => setOpen(true)}>Create Transaction</Button>
+          <MUIButton onClick={() => setOpen(true)}>
+            Create Transaction
+          </MUIButton>
         }
       />
 

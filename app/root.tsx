@@ -1,8 +1,12 @@
 import { TooltipProvider } from "./components/ui/tooltip";
 import appStylesHref from "./globals.css?url";
+import { MuiDocument } from "./mui/MuiDocument";
+import { MuiMeta } from "./mui/MuiMeta";
+import { getMuiLinks } from "./mui/getMuiLinks";
 // Import ClerkApp
 import { ClerkApp } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
+import { CssBaseline } from "@mui/material";
 import type {
   LinksFunction,
   LoaderFunction,
@@ -16,8 +20,6 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 
-// import "./globals.css";
-
 export const meta: MetaFunction = () => [
   {
     charset: "utf-8",
@@ -27,6 +29,7 @@ export const meta: MetaFunction = () => [
 ];
 
 export const links: LinksFunction = () => [
+  ...getMuiLinks(),
   { rel: "stylesheet", href: appStylesHref },
 ];
 
@@ -39,10 +42,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
+        <MuiMeta />
         <Links />
       </head>
       <body className="bg-blue-50">
         {children}
+        <CssBaseline />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -52,9 +57,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <TooltipProvider>
-      <Outlet />
-    </TooltipProvider>
+    <MuiDocument>
+      <TooltipProvider>
+        <Outlet />
+      </TooltipProvider>
+    </MuiDocument>
   );
 }
 
