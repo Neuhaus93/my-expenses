@@ -1,23 +1,19 @@
 import classes from "./navbar-simple.module.css";
 import { SignOutButton } from "@clerk/remix";
-import { Group, Code, Button } from "@mantine/core";
+import { Group, Button } from "@mantine/core";
 import { Link } from "@remix-run/react";
 import {
-  IconBellRinging,
-  IconFingerprint,
-  IconKey,
-  IconSettings,
-  Icon2fa,
-  IconDatabaseImport,
-  IconReceipt2,
   IconLogout,
+  IconHome,
+  IconCategory,
+  IconWallet,
 } from "@tabler/icons-react";
 import { useState } from "react";
 
 const data = [
-  { link: "/app", label: "Dashboard", icon: IconBellRinging },
-  { link: "/app/categories", label: "Categories", icon: IconReceipt2 },
-  { link: "/app/wallets", label: "Wallets", icon: IconFingerprint },
+  { link: "/app", label: "Dashboard", icon: IconHome },
+  { link: "/app/categories", label: "Categories", icon: IconCategory },
+  { link: "/app/wallets", label: "Wallets", icon: IconWallet },
 ];
 
 export function NavbarSimple() {

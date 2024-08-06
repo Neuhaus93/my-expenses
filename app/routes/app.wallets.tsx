@@ -1,4 +1,5 @@
 import { getAuth } from "@clerk/remix/ssr.server";
+import { Card, Grid, Stack, Text } from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { eq, sql } from "drizzle-orm";
@@ -40,17 +41,18 @@ export default function WalletsPage() {
     <div className="mx-4 my-6">
       <h1 className="text-lg font-semibold">Wallets Page</h1>
 
-      <div className="mt-3 grid grid-cols-2 gap-4">
+      <Grid>
         {wallets.map((wallet) => (
-          <div
-            key={wallet.id}
-            className="min-w-[200px] rounded-lg bg-white p-3 shadow-md"
-          >
-            <p className="text-sm text-slate-500">{wallet.name}</p>
-            <p className="mt-1.5">{formatCurrency(wallet.balance)}</p>
-          </div>
+          <Grid.Col key={wallet.id} span={{ base: 12, md: 6, lg: 3 }}>
+            <Card mb={16} shadow="xs" radius="md">
+              <Stack gap="sm">
+                <Text size="sm">{wallet.name}</Text>
+                <Text fw={500}>{formatCurrency(wallet.balance)}</Text>
+              </Stack>
+            </Card>
+          </Grid.Col>
         ))}
-      </div>
+      </Grid>
     </div>
   );
 }

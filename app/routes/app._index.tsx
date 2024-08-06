@@ -1,5 +1,13 @@
 import { getAuth } from "@clerk/remix/ssr.server";
-import { ActionIcon, Button, NativeSelect, Table } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Card,
+  NativeSelect,
+  Stack,
+  Table,
+  Text,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   ActionFunctionArgs,
@@ -19,6 +27,7 @@ import { eq, sql } from "drizzle-orm";
 import { Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
 import { z } from "zod";
+import { SavingsIllustration } from "~/components/illustrations/savings";
 import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
@@ -178,12 +187,12 @@ export default function Index() {
 
   return (
     <div className="px-4 py-6">
-      <div className="mb-4 flex">
-        <div className="min-w-[200px] rounded-lg bg-white p-3 shadow-md">
-          <p className="text-sm text-slate-500">Current Balance</p>
-          <p className="mt-1.5">{formatCurrency(balance)}</p>
-        </div>
-      </div>
+      <Card mb={16} shadow="xs" radius="md" w={200}>
+        <Stack gap="sm">
+          <Text size="sm">Current Balance</Text>
+          <Text fw={500}>{formatCurrency(balance)}</Text>
+        </Stack>
+      </Card>
 
       <Form
         ref={formRef}
@@ -224,38 +233,48 @@ export default function Index() {
         Create Transaction
       </Button>
 
-      <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
-        <Table striped>
-          <Table.Thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <Table.Tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <Table.Th key={header.id} scope="col">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </Table.Th>
-                ))}
-              </Table.Tr>
-            ))}
-          </Table.Thead>
+      {transactions.length > 0 ? (
+        <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
+          <Table striped>
+            <Table.Thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <Table.Tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <Table.Th key={header.id} scope="col">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </Table.Th>
+                  ))}
+                </Table.Tr>
+              ))}
+            </Table.Thead>
 
-          <Table.Tbody>
-            {table.getRowModel().rows.map((row) => (
-              <Table.Tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <Table.Td key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </Table.Td>
-                ))}
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </div>
+            <Table.Tbody>
+              {table.getRowModel().rows.map((row) => (
+                <Table.Tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <Table.Td key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </Table.Td>
+                  ))}
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center flex-col mt-10">
+          <SavingsIllustration width={200} height="100%" />
+          <Text mt={24}>{"You don't have transactions yet"}</Text>
+        </div>
+      )}
 
       <UpsertTransactionModal
         opened={opened}
