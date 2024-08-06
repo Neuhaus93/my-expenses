@@ -1,8 +1,11 @@
+// Import styles of packages that you've installed.
+// All packages except `@mantine/hooks` require styles imports
 import { TooltipProvider } from "./components/ui/tooltip";
 import appStylesHref from "./globals.css?url";
-// Import ClerkApp
 import { ClerkApp } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
+import { ColorSchemeScript, MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
 import type {
   LinksFunction,
   LoaderFunction,
@@ -15,8 +18,6 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
-
-// import "./globals.css";
 
 export const meta: MetaFunction = () => [
   {
@@ -36,13 +37,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <meta charSet="UTF-8" />
+        <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <ColorSchemeScript />
       </head>
       <body className="bg-blue-50">
-        {children}
+        <MantineProvider>{children}</MantineProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

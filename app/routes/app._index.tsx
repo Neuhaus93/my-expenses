@@ -1,4 +1,5 @@
 import { getAuth } from "@clerk/remix/ssr.server";
+import { ActionIcon, Button, NativeSelect, Table } from "@mantine/core";
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -17,8 +18,6 @@ import { eq, sql } from "drizzle-orm";
 import { Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
 import { z } from "zod";
-import { Button } from "~/components/ui/button";
-import { Select } from "~/components/ui/my-select";
 import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
@@ -140,17 +139,15 @@ const columns = [
       },
     }) => {
       return (
-        <div className="flex gap-1">
-          <DeleteButton id={original.id} />
-
-          <Button
-            size="sm"
-            variant="ghost"
+        <div className="flex gap-2">
+          <ActionIcon
+            variant="outline"
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={() => (meta as any)?.onClickEdit(original)}
           >
             <Pencil size={16} />
-          </Button>
+          </ActionIcon>
+          <DeleteButton id={original.id} />
         </div>
       );
     },
@@ -189,36 +186,27 @@ export default function Index() {
       <Form
         ref={formRef}
         method="post"
-        className="mb-8 flex items-end space-x-2"
+        className="mb-8 flex items-end space-x-2 w-[180x]"
       >
-        <div className="w-[180px]">
-          <label
-            htmlFor="category"
-            className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Select an option
-          </label>
-          <Select
-            id="category"
-            name="category"
-            defaultValue={defaultCategory}
-            onChange={() => {
-              if (formRef.current) {
-                formRef.current.dispatchEvent(
-                  new Event("submit", { cancelable: true, bubbles: true }),
-                );
-              }
-            }}
-            className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
-          >
-            <option value="-1">All Categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.title}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <NativeSelect
+          label="Select a category"
+          name="category"
+          defaultValue={defaultCategory}
+          onChange={() => {
+            if (formRef.current) {
+              formRef.current.dispatchEvent(
+                new Event("submit", { cancelable: true, bubbles: true }),
+              );
+            }
+          }}
+        >
+          <option value="-1">All Categories</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.title}
+            </option>
+          ))}
+        </NativeSelect>
 
         <button type="submit" className="sr-only">
           Filter
@@ -240,39 +228,36 @@ export default function Index() {
       />
 
       <div className="relative mt-2 overflow-x-auto shadow-md sm:rounded-lg">
-        <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400 rtl:text-right">
-          <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
+        <Table striped>
+          <Table.Thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <Table.Tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} scope="col" className="px-6 py-3">
+                  <Table.Th key={header.id} scope="col">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                  </th>
+                  </Table.Th>
                 ))}
-              </tr>
+              </Table.Tr>
             ))}
-          </thead>
+          </Table.Thead>
 
-          <tbody>
+          <Table.Tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="border-b odd:bg-white even:bg-gray-50 dark:border-gray-700 odd:dark:bg-gray-900 even:dark:bg-gray-800"
-              >
+              <Table.Tr key={row.id}>
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-6 py-4">
+                  <Table.Td key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                  </Table.Td>
                 ))}
-              </tr>
+              </Table.Tr>
             ))}
-          </tbody>
-        </table>
+          </Table.Tbody>
+        </Table>
       </div>
     </div>
   );
@@ -296,9 +281,9 @@ const DeleteButton = ({ id }: { id: number }) => {
   return (
     <fetcher.Form method="post" onSubmit={handleSubmit}>
       <input hidden name="id" defaultValue={id} />
-      <Button size="sm" variant="ghost" disabled={loading}>
-        <Trash2 size={16} className="text-red-500" />
-      </Button>
+      <ActionIcon variant="subtle" color="red" disabled={loading}>
+        <Trash2 size={16} />
+      </ActionIcon>
     </fetcher.Form>
   );
 };
