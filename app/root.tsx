@@ -1,6 +1,5 @@
 // Import styles of packages that you've installed.
 // All packages except `@mantine/hooks` require styles imports
-import { TooltipProvider } from "./components/ui/tooltip";
 import appStylesHref from "./globals.css?url";
 import { ClerkApp } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
@@ -62,11 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  return (
-    <TooltipProvider>
-      <Outlet />
-    </TooltipProvider>
-  );
+  return <Outlet />;
 }
 
 export default ClerkApp(App);
