@@ -186,7 +186,7 @@ export default function Index() {
   });
 
   return (
-    <div className="px-4 py-6">
+    <>
       <Card mb={16} shadow="xs" radius="md" w={200}>
         <Stack gap="sm">
           <Text size="sm">Current Balance</Text>
@@ -235,7 +235,7 @@ export default function Index() {
 
       {transactions.length > 0 ? (
         <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
-          <Table striped>
+          <Table striped verticalSpacing="sm">
             <Table.Thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <Table.Tr key={headerGroup.id}>
@@ -287,7 +287,7 @@ export default function Index() {
             : transactions[editTransactionIndex]
         }
       />
-    </div>
+    </>
   );
 }
 
