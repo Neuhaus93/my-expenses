@@ -4,7 +4,7 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import appStylesHref from "./globals.css?url";
 import { ClerkApp } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
-import { ColorSchemeScript, MantineProvider } from "@mantine/core";
+import { ColorSchemeScript, createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import type {
@@ -38,6 +38,8 @@ export const links: LinksFunction = () => [
 
 export const loader: LoaderFunction = (args) => rootAuthLoader(args);
 
+const theme = createTheme({});
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -46,10 +48,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <ColorSchemeScript />
+        <ColorSchemeScript defaultColorScheme="auto" />
       </head>
-      <body className="bg-blue-50">
-        <MantineProvider>{children}</MantineProvider>
+      <body>
+        <MantineProvider theme={theme} defaultColorScheme="auto">
+          {children}
+        </MantineProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
