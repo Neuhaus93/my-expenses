@@ -1,5 +1,7 @@
+import { ColorSchemeToggle } from "../components/color-scheme-toggle";
 import { SignOutButton } from "@clerk/remix";
-import { AppShell, NavLink, Text } from "@mantine/core";
+import { AppShell, Burger, Group, NavLink, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { Link, Outlet, useLocation } from "@remix-run/react";
 import {
   IconLogout,
@@ -15,6 +17,7 @@ const data = [
 ];
 
 export default function SidebarLayout() {
+  const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
 
   function isActive(link: string) {
@@ -23,17 +26,30 @@ export default function SidebarLayout() {
 
   return (
     <AppShell
+      header={{ height: 60 }}
       navbar={{
         width: 180,
-        breakpoint: "sm",
+        breakpoint: "xs",
+        collapsed: { mobile: !opened },
       }}
+      padding="md"
     >
+      <AppShell.Header>
+        <Group justify="space-between" h="100%" px="md">
+          <Group h="100%">
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              hiddenFrom="xs"
+              size="sm"
+            />
+            <Text>My Expenses</Text>
+          </Group>
+          <ColorSchemeToggle />
+        </Group>
+      </AppShell.Header>
+
       <AppShell.Navbar p="xs">
-        <AppShell.Section>
-          <Text pl={8} fw={500} mt={24} size="lg">
-            My Expenses
-          </Text>
-        </AppShell.Section>
         <AppShell.Section grow my="md">
           {data.map((item) => (
             <NavLink
@@ -43,6 +59,7 @@ export default function SidebarLayout() {
               label={item.label}
               leftSection={<item.icon size="1rem" stroke={1.5} />}
               active={isActive(item.link)}
+              onClick={close}
             />
           ))}
         </AppShell.Section>
