@@ -16,6 +16,7 @@ import {
   redirect,
 } from "@remix-run/node";
 import { Form, useFetcher, useLoaderData } from "@remix-run/react";
+import { IconPencil, IconTrash } from "@tabler/icons-react";
 import {
   createColumnHelper,
   flexRender,
@@ -24,7 +25,6 @@ import {
 } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import { eq, sql } from "drizzle-orm";
-import { Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
 import { z } from "zod";
 import { SavingsIllustration } from "~/components/illustrations/savings";
@@ -155,7 +155,7 @@ const columns = [
               (meta as any)?.onClickEdit(index);
             }}
           >
-            <Pencil size={16} />
+            <IconPencil size="1rem" />
           </ActionIcon>
           <DeleteButton id={original.id} />
         </div>
@@ -310,7 +310,7 @@ const DeleteButton = ({ id }: { id: number }) => {
     <fetcher.Form method="post" onSubmit={handleSubmit}>
       <input hidden name="id" defaultValue={id} />
       <ActionIcon variant="subtle" color="red" disabled={loading} type="submit">
-        <Trash2 size={16} />
+        <IconTrash size="1rem" />
       </ActionIcon>
     </fetcher.Form>
   );
