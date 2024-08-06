@@ -1,5 +1,6 @@
 import { getAuth } from "@clerk/remix/ssr.server";
 import { ActionIcon, Button, NativeSelect, Table } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -13,12 +14,12 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { format } from "date-fns";
+import dayjs from "dayjs";
 import { eq, sql } from "drizzle-orm";
 import { Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
 import { z } from "zod";
-import { UpsertTransactionDialog } from "~/components/upsert-transaction-dialog";
+import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
 import { transactions as transactionsSchema } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
@@ -37,12 +38,10 @@ export async function loader(args: LoaderFunctionArgs) {
 
   const transactionsPromise = db.query.transactions.findMany({
     where: (transactions, { and, eq }) => {
-      return category === -1
-        ? undefined
-        : and(
-            eq(transactions.userId, userId),
-            eq(transactions.categoryId, category),
-          );
+      return and(
+        eq(transactions.userId, userId),
+        category === -1 ? undefined : eq(transactions.categoryId, category),
+      );
     },
     with: { category: true, wallet: true },
     orderBy(fields, { desc }) {
@@ -104,7 +103,7 @@ const columnHelper =
 const columns = [
   columnHelper.accessor("timestamp", {
     header: "Date",
-    cell: (info) => format(info.getValue(), "PPP HH:mm"),
+    cell: (info) => dayjs(info.getValue()).format("L HH:mm"),
   }),
   columnHelper.accessor("description", {
     cell: (info) => info.getValue(),
@@ -133,7 +132,7 @@ const columns = [
     id: "actions",
     header: "Actions",
     cell: ({
-      row: { original },
+      row: { original, index },
       table: {
         options: { meta },
       },
@@ -142,8 +141,10 @@ const columns = [
         <div className="flex gap-2">
           <ActionIcon
             variant="outline"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onClick={() => (meta as any)?.onClickEdit(original)}
+            onClick={() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (meta as any)?.onClickEdit(index);
+            }}
           >
             <Pencil size={16} />
           </ActionIcon>
@@ -157,9 +158,9 @@ const columns = [
 export default function Index() {
   const { transactions, categories, wallets, defaultCategory, balance } =
     useLoaderData<typeof loader>();
-  const [open, setOpen] = useState(false);
-  const [editTransaction, setEditTransaction] = useState<
-    (typeof transactions)[number] | null
+  const [opened, { open, close }] = useDisclosure(false);
+  const [editTransactionIndex, setEditTransactionIndex] = useState<
+    number | null
   >(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -168,8 +169,9 @@ export default function Index() {
     columns,
     getCoreRowModel: getCoreRowModel(),
     meta: {
-      onClickEdit: (transaction: (typeof transactions)[number]) => {
-        setEditTransaction(transaction);
+      onClickEdit: (index: number) => {
+        open();
+        setEditTransactionIndex(index);
       },
     },
   });
@@ -186,7 +188,7 @@ export default function Index() {
       <Form
         ref={formRef}
         method="post"
-        className="mb-8 flex items-end space-x-2 w-[180x]"
+        className="mb-5 flex items-end space-x-2 w-[180x]"
       >
         <NativeSelect
           label="Select a category"
@@ -213,21 +215,16 @@ export default function Index() {
         </button>
       </Form>
 
-      <UpsertTransactionDialog
-        open={!!editTransaction || open}
-        onClose={() => {
-          setOpen(false);
-          setEditTransaction(null);
+      <Button
+        onClick={() => {
+          setEditTransactionIndex(null);
+          open();
         }}
-        categories={categories}
-        wallets={wallets}
-        transaction={editTransaction}
-        Trigger={
-          <Button onClick={() => setOpen(true)}>Create Transaction</Button>
-        }
-      />
+      >
+        Create Transaction
+      </Button>
 
-      <div className="relative mt-2 overflow-x-auto shadow-md sm:rounded-lg">
+      <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
         <Table striped>
           <Table.Thead>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -259,6 +256,18 @@ export default function Index() {
           </Table.Tbody>
         </Table>
       </div>
+
+      <UpsertTransactionModal
+        opened={opened}
+        onClose={close}
+        categories={categories}
+        wallets={wallets}
+        transaction={
+          editTransactionIndex === null
+            ? null
+            : transactions[editTransactionIndex]
+        }
+      />
     </div>
   );
 }
@@ -281,7 +290,7 @@ const DeleteButton = ({ id }: { id: number }) => {
   return (
     <fetcher.Form method="post" onSubmit={handleSubmit}>
       <input hidden name="id" defaultValue={id} />
-      <ActionIcon variant="subtle" color="red" disabled={loading}>
+      <ActionIcon variant="subtle" color="red" disabled={loading} type="submit">
         <Trash2 size={16} />
       </ActionIcon>
     </fetcher.Form>

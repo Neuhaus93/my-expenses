@@ -1,107 +1,80 @@
-import { DateTimePicker } from "./ui/date-time-picker";
-import { Textarea } from "./ui/textarea";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import {
+  Button,
+  Modal,
+  NativeSelect,
+  SegmentedControl,
+  TextInput,
+  Textarea,
+} from "@mantine/core";
+import { DateTimePicker, DateValue } from "@mantine/dates";
 import { FetcherWithComponents, useFetcher } from "@remix-run/react";
-import { ReactNode, useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
-import { Button } from "~/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
+import { DialogFooter } from "~/components/ui/dialog";
 import { Label } from "~/components/ui/label";
-import { Select } from "~/components/ui/my-select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { IndexLoaderData } from "~/routes/app._index";
 
 export type UpsertTransactionDialogProps = {
-  open: boolean;
+  opened: boolean;
   onClose: () => void;
   categories: IndexLoaderData["categories"];
   wallets: IndexLoaderData["wallets"];
   transaction?: IndexLoaderData["transactions"][number] | null;
-  Trigger?: ReactNode;
 };
 
 function getRandomFetcherKey() {
   return `upsert-transaction-${uuidv4()}`;
 }
 
-export const UpsertTransactionDialog = ({
-  open,
+export const UpsertTransactionModal = ({
+  opened,
   onClose,
   categories,
   wallets,
   transaction: t,
-  Trigger,
 }: UpsertTransactionDialogProps) => {
+  const [tab, setTab] = useState(t ? t.type : "expense");
   const [fetcherKey, setFetcherKey] = useState(getRandomFetcherKey);
   const fetcher = useFetcher({ key: fetcherKey });
 
-  if (fetcher.data && open) {
-    const { ok } = z
-      .object({ ok: z.boolean() })
-      .catch({ ok: false })
-      .parse(fetcher.data);
+  useEffect(() => {
+    if (fetcher.data && opened) {
+      const { ok } = z
+        .object({ ok: z.boolean() })
+        .catch({ ok: false })
+        .parse(fetcher.data);
 
-    if (ok) {
-      setFetcherKey(getRandomFetcherKey());
-      onClose();
+      if (ok) {
+        setFetcherKey(getRandomFetcherKey());
+        onClose();
+      }
     }
-  }
+  }, [fetcher.data, opened, onClose]);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(newOpen) => {
-        if (!newOpen) onClose();
-      }}
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title="Create Transaction"
+      centered
     >
-      {Trigger && <DialogTrigger asChild>{Trigger}</DialogTrigger>}
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t ? "Update" : "Create New"} Transaction</DialogTitle>
-          <VisuallyHidden>
-            <DialogDescription>{`${t ? "Update" : "Create"} a transaction here. Click ${t ? "update" : "create"} when you're done`}</DialogDescription>
-          </VisuallyHidden>
-        </DialogHeader>
-        <Tabs defaultValue={t ? t.type : "expense"}>
-          <TabsList>
-            <TabsTrigger value="expense" disabled={!!t}>
-              Expense
-            </TabsTrigger>
-            <TabsTrigger value="income" disabled={!!t}>
-              Income
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="expense">
-            <TransactionForm
-              type="expense"
-              fetcher={fetcher}
-              transaction={t}
-              categories={categories}
-              wallets={wallets}
-            />
-          </TabsContent>
-          <TabsContent value="income">
-            <TransactionForm
-              type="income"
-              fetcher={fetcher}
-              transaction={t}
-              categories={categories}
-              wallets={wallets}
-            />
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+      <SegmentedControl
+        data={["expense", "income"]}
+        disabled={!!t}
+        value={tab}
+        onChange={(value) =>
+          setTab(z.enum(["expense", "income"]).catch("expense").parse(value))
+        }
+      />
+      <TransactionForm
+        type={tab}
+        fetcher={fetcher}
+        transaction={t}
+        categories={categories}
+        wallets={wallets}
+      />
+    </Modal>
   );
 };
 
@@ -111,8 +84,8 @@ const TransactionForm = ({
   type,
   transaction,
   fetcher,
-}: Omit<UpsertTransactionDialogProps, "open" | "onClose"> & {
-  type: "expense" | "income";
+}: Omit<UpsertTransactionDialogProps, "opened" | "onClose"> & {
+  type: "expense" | "income" | "transference";
   fetcher: FetcherWithComponents<unknown>;
 }) => {
   const loading = fetcher.state !== "idle";
@@ -134,7 +107,7 @@ const TransactionForm = ({
       description: obj.description,
     }))
     .parse(transaction ?? {});
-  const [date, setDate] = useState<Date | undefined>(t.date);
+  const [date, setDate] = useState<DateValue>(t.date);
 
   return (
     <fetcher.Form method="post" action={`/transaction/${t.id}`}>
@@ -144,7 +117,7 @@ const TransactionForm = ({
           <Label htmlFor="name" className="text-left">
             Category
           </Label>
-          <Select
+          <NativeSelect
             name="category"
             defaultValue={t.categoryId}
             className="col-span-3"
@@ -156,13 +129,13 @@ const TransactionForm = ({
                   {c.title}
                 </option>
               ))}
-          </Select>
+          </NativeSelect>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="wallet" className="text-left">
             Wallet
           </Label>
-          <Select
+          <NativeSelect
             id="wallet"
             name="wallet"
             defaultValue={t.walletId}
@@ -173,12 +146,9 @@ const TransactionForm = ({
                 {w.name}
               </option>
             ))}
-          </Select>
+          </NativeSelect>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="timestamp" className="text-left">
-            Date and Time
-          </Label>
           <input
             id="timestamp"
             name="timestamp"
@@ -186,20 +156,21 @@ const TransactionForm = ({
             readOnly
             hidden
           />
+          <Label htmlFor="timestamp" className="text-left">
+            Date and Time
+          </Label>
           <DateTimePicker
-            displayFormat={{ hour24: "PPP HH:mm" }}
-            className="col-span-3 w-full"
-            granularity="minute"
-            hourCycle={24}
             value={date}
             onChange={setDate}
+            className="col-span-3"
+            valueFormat="L HH:mm"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="value" className="text-left">
             Value
           </Label>
-          <Input
+          <TextInput
             step={0.01}
             type="number"
             id="value"
@@ -223,7 +194,7 @@ const TransactionForm = ({
       </div>
 
       <DialogFooter>
-        <Button variant="default" type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading}>
           {t.id === "new" ? "Create" : "Update"}
         </Button>
       </DialogFooter>
@@ -231,7 +202,8 @@ const TransactionForm = ({
   );
 };
 
-function getDateTimeVal(now = new Date()) {
+function getDateTimeVal(dateValue: Date | null) {
+  const now = dateValue ?? new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const date = String(now.getDate()).padStart(2, "0");
