@@ -6,6 +6,7 @@ import { ClerkApp } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
 import type {
   LinksFunction,
   LoaderFunction,
@@ -18,6 +19,10 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import dayjs from "dayjs";
+import localizedFormat from "dayjs/plugin/localizedFormat";
+
+dayjs.extend(localizedFormat);
 
 export const meta: MetaFunction = () => [
   {
