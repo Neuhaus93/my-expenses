@@ -34,9 +34,15 @@ export const UpsertTransactionModal = ({
   wallets,
   transaction: t,
 }: UpsertTransactionDialogProps) => {
-  const [tab, setTab] = useState(t ? t.type : "expense");
+  const [tab, setTab] = useState<"income" | "expense" | "transference">(
+    "expense",
+  );
   const [fetcherKey, setFetcherKey] = useState(getRandomFetcherKey);
   const fetcher = useFetcher({ key: fetcherKey });
+
+  useEffect(() => {
+    setTab(t ? t.type : "expense");
+  }, [t]);
 
   useEffect(() => {
     if (fetcher.data && opened) {
@@ -64,9 +70,9 @@ export const UpsertTransactionModal = ({
         data={["expense", "income"]}
         disabled={!!t}
         value={tab}
-        onChange={(value) =>
-          setTab(z.enum(["expense", "income"]).catch("expense").parse(value))
-        }
+        onChange={(value) => {
+          setTab(z.enum(["expense", "income"]).catch("expense").parse(value));
+        }}
         fullWidth
       />
       <TransactionForm
@@ -113,7 +119,7 @@ const TransactionForm = ({
 
   return (
     <fetcher.Form method="post" action={`/transaction/${t.id}`}>
-      <input hidden name="type" defaultValue={type} />
+      <input hidden name="type" readOnly value={type} />
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="category" size="md">
