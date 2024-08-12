@@ -1,11 +1,17 @@
 import { ColorSchemeToggle } from "../components/color-scheme-toggle";
 import { SignOutButton } from "@clerk/remix";
-import { AppShell, Burger, Group, NavLink, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  AppShell,
+  Burger,
+  Group,
+  NavLink,
+  Text,
+} from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import {
-  Form,
   json,
   Link,
   Outlet,
@@ -18,6 +24,8 @@ import {
   IconHome,
   IconCategory,
   IconWallet,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import { z } from "zod";
 
@@ -28,18 +36,25 @@ const data = [
 ];
 
 export async function loader(args: LoaderFunctionArgs) {
-  const current = new Date().getMonth();
   const url = new URL(args.request.url);
   const searchParamsObj = Object.fromEntries(url.searchParams);
-  const { month } = z
-    .object({ month: z.coerce.number().int().gte(0).lte(11).catch(current) })
+  const { month, year } = z
+    .object({
+      month: z.coerce
+        .number()
+        .int()
+        .gte(0)
+        .lte(11)
+        .catch(new Date().getMonth()),
+      year: z.coerce.number().int().catch(new Date().getFullYear()),
+    })
     .parse(searchParamsObj);
 
-  return json({ month });
+  return json({ month, year });
 }
 
 export default function SidebarLayout() {
-  const { month } = useLoaderData<typeof loader>();
+  const { month, year } = useLoaderData<typeof loader>();
   const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
 
@@ -69,7 +84,7 @@ export default function SidebarLayout() {
             />
             <Text>My Expenses</Text>
           </Group>
-          <MonthSelector month={month} />
+          <MonthSelector month={month} year={year} />
           <ColorSchemeToggle />
         </Group>
       </AppShell.Header>
@@ -106,34 +121,84 @@ export default function SidebarLayout() {
   );
 }
 
-export const MonthSelector = ({ month }: { month: number }) => {
+export const MonthSelector = ({
+  month,
+  year,
+}: {
+  month: number;
+  year: number;
+}) => {
   const [, setSearchParams] = useSearchParams();
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const date = new Date();
+  date.setFullYear(year);
   date.setMonth(month);
 
+  const setValues = (newYear: number, newMonth: number) => {
+    setSearchParams((prev) => {
+      if (newYear === currentYear) prev.delete("year");
+      else prev.set("year", newYear.toString());
+
+      if (newMonth === currentMonth) prev.delete("month");
+      else prev.set("month", newMonth.toString());
+
+      return prev;
+    });
+  };
+
+  const handleGoToPreviousMonth = () => {
+    let newMonth = month - 1;
+    let newYear = year;
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear = year - 1;
+    }
+
+    setValues(newYear, newMonth);
+  };
+
+  const handleGoToNextMonth = () => {
+    let newYear = year;
+    let newMonth = month + 1;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear = year + 1;
+    }
+
+    setValues(newYear, newMonth);
+  };
+
   return (
-    <Form>
+    <Group gap="sm">
+      <ActionIcon
+        variant="default"
+        size="lg"
+        onClick={handleGoToPreviousMonth}
+        aria-label="previous month"
+      >
+        <IconChevronLeft size="1rem" stroke={1.5} />
+      </ActionIcon>
       <MonthPickerInput
-        defaultValue={date}
+        styles={{ input: { width: 140, textAlign: "center" } }}
+        value={date}
         onChange={(value) => {
           if (value) {
             const newMonth = value.getMonth();
             const newYear = value.getFullYear();
 
-            setSearchParams((prev) => {
-              if (newMonth === currentMonth) prev.delete("month");
-              else prev.set("month", newMonth.toString());
-
-              if (newYear === currentYear) prev.delete("year");
-              else prev.set("year", newYear.toString());
-
-              return prev;
-            });
+            setValues(newYear, newMonth);
           }
         }}
       />
-    </Form>
+      <ActionIcon
+        variant="default"
+        size="lg"
+        onClick={handleGoToNextMonth}
+        aria-label="next month"
+      >
+        <IconChevronRight size="1rem" stroke={1.5} />
+      </ActionIcon>
+    </Group>
   );
 };
