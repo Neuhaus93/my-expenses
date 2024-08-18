@@ -1,14 +1,32 @@
-import { Button, Modal, TextInput } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Checkbox,
+  Modal,
+  NativeSelect,
+  SegmentedControl,
+  Stack,
+  TextInput,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useFetcher } from "@remix-run/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Label } from "~/components/label";
+import type { SelectCategory } from "~/db/schema.server";
 
-export const CreateCategoryModal = () => {
+type CreateCategoryModalProps = {
+  type: "income" | "expense";
+  parentCategories: Pick<SelectCategory, "id" | "title">[];
+};
+
+export const CreateCategoryModal = ({
+  type,
+  parentCategories,
+}: CreateCategoryModalProps) => {
   const [opened, { open, close }] = useDisclosure(false);
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
+  const [isParent, setIsParent] = useState(true);
 
   useEffect(() => {
     const { ok } = z
@@ -30,21 +48,55 @@ export const CreateCategoryModal = () => {
           action="/category/new"
           className="flex flex-col"
         >
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-left">
-                Name
-              </Label>
+          <Stack>
+            <SegmentedControl
+              value={type}
+              readOnly
+              disabled
+              data={[
+                { value: "expense", label: "Expense" },
+                { value: "income", label: "Income" },
+              ]}
+            />
+            <input type="hidden" name="type" value={type} />
+            <Box>
               <TextInput
+                label="Name"
                 type="text"
                 id="title"
                 name="title"
-                className="col-span-3"
+                minLength={1}
+                maxLength={255}
+                required
               />
-            </div>
-          </div>
+            </Box>
 
-          <Button type="submit" disabled={loading} className="ml-auto">
+            <Checkbox
+              size="md"
+              label="Is Parent Category"
+              name="isParent"
+              checked={isParent}
+              onChange={(event) => setIsParent(event.currentTarget.checked)}
+            />
+
+            <Box h={60.8} hidden={!isParent} />
+            <Box hidden={isParent}>
+              <NativeSelect
+                id="parent-category"
+                name="parent"
+                defaultValue={parentCategories[0].id}
+                label="Parent"
+              >
+                {parentCategories.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.title}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Box>
+          </Stack>
+
+          <Button type="submit" disabled={loading} ml="auto" mt="lg">
             Create Category
           </Button>
         </fetcher.Form>
