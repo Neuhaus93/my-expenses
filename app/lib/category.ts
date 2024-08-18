@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "~/db/config.server";
 import {
   categories as categoriesTable,
@@ -11,11 +11,19 @@ export type NestedCategories = Array<
   }
 >;
 
-export async function getNestedCategories(userId: string) {
+export async function getNestedCategories(
+  userId: string,
+  type: "income" | "expense" | null = null,
+) {
   const categories = await db
     .select()
     .from(categoriesTable)
-    .where(eq(categoriesTable.userId, userId))
+    .where(
+      and(
+        eq(categoriesTable.userId, userId),
+        type ? eq(categoriesTable.type, type) : undefined,
+      ),
+    )
     .orderBy(desc(categoriesTable.parentId), categoriesTable.title);
 
   const nestedCategories = categories.reduce<NestedCategories>(

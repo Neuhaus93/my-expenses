@@ -1,5 +1,5 @@
 import { getAuth } from "@clerk/remix/ssr.server";
-import { Card, Grid, Stack, Text } from "@mantine/core";
+import { Card, Grid, Stack, Text, Title } from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { eq, sql } from "drizzle-orm";
@@ -38,8 +38,10 @@ export default function WalletsPage() {
   const { wallets } = useLoaderData<typeof loader>();
 
   return (
-    <div className="mx-4 my-6">
-      <h1 className="text-lg font-semibold">Wallets Page</h1>
+    <div>
+      <Title order={2} mb="lg">
+        Wallets
+      </Title>
 
       <Grid>
         {wallets.map((wallet) => (
