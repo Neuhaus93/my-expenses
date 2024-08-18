@@ -24,13 +24,17 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import { eq, sql } from "drizzle-orm";
-import { FormEvent, useRef, useState } from "react";
+import { eq, and, sql } from "drizzle-orm";
+import { FormEvent, Fragment, useRef, useState } from "react";
 import { z } from "zod";
 import { SavingsIllustration } from "~/components/illustrations/savings";
 import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
-import { transactions as transactionsSchema } from "~/db/schema.server";
+import {
+  transactions as transactionsSchema,
+  categories as tableCategories,
+} from "~/db/schema.server";
+import { getNestedCategories } from "~/lib/category";
 import { formatCurrency } from "~/lib/currency";
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -64,13 +68,29 @@ export async function loader(args: LoaderFunctionArgs) {
   dateMonthLater.setUTCDate(1);
   dateMonthLater.setUTCHours(0, 0, 0, 0);
 
+  const categoryIds = (
+    await db
+      .select({ id: tableCategories.id })
+      .from(tableCategories)
+      .where(
+        and(
+          eq(tableCategories.userId, userId),
+          eq(tableCategories.parentId, category),
+        ),
+      )
+  )
+    .map((c) => c.id)
+    .concat([category]);
+
   const transactionsPromise = db.query.transactions.findMany({
-    where: (transactions, { and, eq, gte, lt }) => {
+    where: (transactions, { and, eq, gte, lt, inArray }) => {
       return and(
         eq(transactions.userId, userId),
         gte(transactions.timestamp, date),
         lt(transactions.timestamp, dateMonthLater),
-        category === -1 ? undefined : eq(transactions.categoryId, category),
+        category === -1
+          ? undefined
+          : inArray(transactions.categoryId, categoryIds),
       );
     },
     with: { category: true, wallet: true },
@@ -78,14 +98,7 @@ export async function loader(args: LoaderFunctionArgs) {
       return [desc(fields.timestamp)];
     },
   });
-  const categoriesPromise = db.query.categories.findMany({
-    where(fields, { eq }) {
-      return eq(fields.userId, userId);
-    },
-    orderBy(fields, operators) {
-      return [operators.asc(fields.title)];
-    },
-  });
+  const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
     where(fields, { eq }) {
       return eq(fields.userId, userId);
@@ -121,7 +134,13 @@ export async function loader(args: LoaderFunctionArgs) {
     .parse(balanceResult);
 
   return json(
-    { transactions, categories, wallets, defaultCategory: category, balance },
+    {
+      transactions,
+      categories,
+      wallets,
+      defaultCategory: category,
+      balance,
+    },
     200,
   );
 }
@@ -232,10 +251,17 @@ export default function Index() {
           }}
         >
           <option value="-1">All Categories</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.title}
-            </option>
+          {categories.map((category, index) => (
+            <Fragment key={index}>
+              <option key={category.id} value={category.id}>
+                {category.title}
+              </option>
+              {category.children.map((child) => (
+                <option key={child.id} value={child.id}>
+                  {`•\u00A0\u00A0${child.title}`}
+                </option>
+              ))}
+            </Fragment>
           ))}
         </NativeSelect>
 
@@ -345,7 +371,9 @@ export async function action({ request }: ActionFunctionArgs) {
   const { category } = z
     .object({ category: z.coerce.number().int().catch(-1) })
     .parse(formObj);
-  if (category !== -1) searchParams.set("category", category.toString());
 
-  return redirect(`/app${searchParams.toString() ? `?${searchParams}` : ""}`);
+  if (category !== -1) searchParams.set("category", category.toString());
+  else searchParams.delete("category");
+
+  return redirect(`/app?${searchParams.toString()}`);
 }

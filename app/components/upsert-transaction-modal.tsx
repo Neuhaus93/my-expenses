@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { DateTimePicker, DateValue } from "@mantine/dates";
 import { FetcherWithComponents, useFetcher } from "@remix-run/react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { Label } from "~/components/label";
@@ -133,10 +133,17 @@ const TransactionForm = ({
           >
             {categories
               .filter((c) => c.type === type)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
+              .map((c, index) => (
+                <Fragment key={index}>
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                  {c.children.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {`•\u00A0\u00A0${child.title}`}
+                    </option>
+                  ))}
+                </Fragment>
               ))}
           </NativeSelect>
         </div>

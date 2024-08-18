@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  foreignKey,
   integer,
   pgTable,
   serial,
@@ -69,14 +70,25 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
-export const categories = pgTable("category", {
-  id: serial("id").primaryKey(),
-  title: varchar("title", { length: 256 }).notNull(),
-  type: text("type", { enum: ["income", "expense"] }).notNull(),
-  userId: text("user_id")
-    .references(() => users.id)
-    .notNull(),
-});
+export const categories = pgTable(
+  "category",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 256 }).notNull(),
+    type: text("type", { enum: ["income", "expense"] }).notNull(),
+    userId: text("user_id")
+      .references(() => users.id)
+      .notNull(),
+    parentId: integer("parent_id"),
+  },
+  (table) => ({
+    parentReference: foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+      name: "parent_fk",
+    }),
+  }),
+);
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
   transactions: many(transactions),
@@ -88,3 +100,4 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
 
 export type SelectTransaction = typeof transactions.$inferSelect;
 export type InsertTransaction = typeof transactions.$inferInsert;
+export type SelectCategory = typeof categories.$inferSelect;
