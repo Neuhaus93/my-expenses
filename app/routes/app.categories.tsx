@@ -1,11 +1,9 @@
 import { getAuth } from "@clerk/remix/ssr.server";
-import { Table } from "@mantine/core";
+import { List } from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { eq } from "drizzle-orm";
 import { CreateCategoryModal } from "~/components/create-category-modal";
-import { db } from "~/db/config.server";
-import { categories as categoriesTable } from "~/db/schema.server";
+import { getNestedCategories } from "~/lib/category";
 
 export async function loader(args: LoaderFunctionArgs) {
   const { userId } = await getAuth(args);
@@ -13,17 +11,12 @@ export async function loader(args: LoaderFunctionArgs) {
     return redirect("/sign-in");
   }
 
-  const categories = await db
-    .select()
-    .from(categoriesTable)
-    .where(eq(categoriesTable.userId, userId))
-    .orderBy(categoriesTable.title);
-
-  return { categories };
+  const nestedCategories = await getNestedCategories(userId);
+  return { nestedCategories };
 }
 
 export default function CategoriesPage() {
-  const { categories } = useLoaderData<typeof loader>();
+  const { nestedCategories } = useLoaderData<typeof loader>();
 
   return (
     <div className="mx-4 my-6">
@@ -31,22 +24,20 @@ export default function CategoriesPage() {
 
       <CreateCategoryModal />
 
-      <Table className="mt-2">
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th className="w-[100px]">Name</Table.Th>
-            <Table.Th>Type</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {categories.map((category) => (
-            <Table.Tr key={category.id}>
-              <Table.Td className="font-medium">{category.title}</Table.Td>
-              <Table.Td>{category.type}</Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+      <List mt="lg">
+        {nestedCategories.map((category) => (
+          <List.Item key={category.id}>
+            {category.title}
+            {category.children.length > 0 && (
+              <List>
+                {category.children.map((child) => (
+                  <List.Item key={child.id}>{child.title}</List.Item>
+                ))}
+              </List>
+            )}
+          </List.Item>
+        ))}
+      </List>
     </div>
   );
 }
