@@ -1,6 +1,8 @@
 import { getAuth } from "@clerk/remix/ssr.server";
+import { DonutChart, DonutChartCell } from "@mantine/charts";
 import {
   ActionIcon,
+  Box,
   Button,
   Card,
   NativeSelect,
@@ -24,15 +26,17 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, gte, lt, inArray, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { FormEvent, Fragment, useRef, useState } from "react";
 import { z } from "zod";
 import { SavingsIllustration } from "~/components/illustrations/savings";
 import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
 import {
-  transactions as transactionsSchema,
+  transactions as tableTransactions,
   categories as tableCategories,
+  wallets as tableWallets,
 } from "~/db/schema.server";
 import { getNestedCategories } from "~/lib/category";
 import { formatCurrency } from "~/lib/currency";
@@ -82,22 +86,48 @@ export async function loader(args: LoaderFunctionArgs) {
     .map((c) => c.id)
     .concat([category]);
 
-  const transactionsPromise = db.query.transactions.findMany({
-    where: (transactions, { and, eq, gte, lt, inArray }) => {
-      return and(
-        eq(transactions.userId, userId),
-        gte(transactions.timestamp, date),
-        lt(transactions.timestamp, dateMonthLater),
+  const tableCategoryParent = alias(tableCategories, "parent");
+  const transactionsPromise = db
+    .select({
+      id: tableTransactions.id,
+      cents: tableTransactions.cents,
+      type: tableTransactions.type,
+      description: tableTransactions.description,
+      timestamp: tableTransactions.timestamp,
+      wallet: {
+        id: tableWallets.id,
+        name: tableWallets.name,
+      },
+      category: {
+        id: tableCategories.id,
+        title: tableCategories.title,
+      },
+      categoryParent: {
+        id: tableCategoryParent.id,
+        title: tableCategoryParent.title,
+      },
+    })
+    .from(tableTransactions)
+    .where(
+      and(
+        eq(tableTransactions.userId, userId),
+        gte(tableTransactions.timestamp, date),
+        lt(tableTransactions.timestamp, dateMonthLater),
         category === -1
           ? undefined
-          : inArray(transactions.categoryId, categoryIds),
-      );
-    },
-    with: { category: true, wallet: true },
-    orderBy(fields, { desc }) {
-      return [desc(fields.timestamp)];
-    },
-  });
+          : inArray(tableTransactions.categoryId, categoryIds),
+      ),
+    )
+    .innerJoin(
+      tableCategories,
+      eq(tableTransactions.categoryId, tableCategories.id),
+    )
+    .leftJoin(
+      tableCategoryParent,
+      eq(tableCategories.parentId, tableCategoryParent.id),
+    )
+    .innerJoin(tableWallets, eq(tableTransactions.walletId, tableWallets.id))
+    .orderBy(desc(tableTransactions.timestamp));
   const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
     where(fields, { eq }) {
@@ -117,9 +147,9 @@ export async function loader(args: LoaderFunctionArgs) {
         end
       )`,
     })
-    .from(transactionsSchema)
-    .groupBy(transactionsSchema.userId)
-    .where(eq(transactionsSchema.userId, userId));
+    .from(tableTransactions)
+    .groupBy(tableTransactions.userId)
+    .where(eq(tableTransactions.userId, userId));
 
   const [transactions, categories, wallets, balanceResult] = await Promise.all([
     transactionsPromise,
@@ -133,6 +163,22 @@ export async function loader(args: LoaderFunctionArgs) {
     .catch([{ balance: 0 }])
     .parse(balanceResult);
 
+  const colors = ["indigo.6", "yellow.6", "teal.6", "gray.6"];
+  const donnutData = transactions.reduce<DonutChartCell[]>((acc, t) => {
+    const category = t.categoryParent ?? t.category;
+    const index = acc.findIndex((cell) => cell.name === category.title);
+    if (index === -1) {
+      acc.push({
+        name: category.title,
+        value: t.cents,
+        color: colors.shift()!,
+      });
+    } else {
+      acc[index].value += t.cents;
+    }
+    return acc;
+  }, []);
+
   return json(
     {
       transactions,
@@ -140,6 +186,7 @@ export async function loader(args: LoaderFunctionArgs) {
       wallets,
       defaultCategory: category,
       balance,
+      donnutData,
     },
     200,
   );
@@ -204,8 +251,14 @@ const columns = [
 ];
 
 export default function Index() {
-  const { transactions, categories, wallets, defaultCategory, balance } =
-    useLoaderData<typeof loader>();
+  const {
+    transactions,
+    categories,
+    wallets,
+    defaultCategory,
+    balance,
+    donnutData,
+  } = useLoaderData<typeof loader>();
   const [opened, { open, close }] = useDisclosure(false);
   const [editTransactionIndex, setEditTransactionIndex] = useState<
     number | null
@@ -278,6 +331,13 @@ export default function Index() {
       >
         Create Transaction
       </Button>
+
+      <Box>
+        <DonutChart
+          data={donnutData}
+          valueFormatter={(v) => formatCurrency(v)}
+        />
+      </Box>
 
       {transactions.length > 0 ? (
         <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
