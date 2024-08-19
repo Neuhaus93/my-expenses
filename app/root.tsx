@@ -1,8 +1,7 @@
-// Import styles of packages that you've installed.
-// All packages except `@mantine/hooks` require styles imports
 import appStylesHref from "./globals.css?url";
 import { ClerkApp } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
+import "@mantine/charts/styles.css";
 import { ColorSchemeScript, createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
