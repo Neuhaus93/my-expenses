@@ -4,6 +4,7 @@ import {
   Modal,
   NativeSelect,
   SegmentedControl,
+  Stack,
   TextInput,
   Textarea,
 } from "@mantine/core";
@@ -12,7 +13,6 @@ import { FetcherWithComponents, useFetcher } from "@remix-run/react";
 import { Fragment, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
-import { Label } from "~/components/label";
 import { IndexLoaderData } from "~/routes/app._index";
 
 export type UpsertTransactionDialogProps = {
@@ -100,16 +100,16 @@ const TransactionForm = ({
   const t = z
     .object({
       id: z.number().or(z.literal("new")).catch("new"),
-      categoryId: z.number().catch(categories[0].id),
-      walletId: z.number().catch(wallets[0].id),
+      category: z.object({ id: z.number() }).catch({ id: categories[0].id }),
+      wallet: z.object({ id: z.number() }).catch({ id: wallets[0].id }),
       timestamp: z.string().catch(Date().toString()),
       cents: z.number().catch(0),
       description: z.string().catch(""),
     })
     .transform((obj) => ({
       id: obj.id,
-      categoryId: obj.categoryId,
-      walletId: obj.walletId,
+      categoryId: obj.category.id,
+      walletId: obj.wallet.id,
       date: new Date(obj.timestamp),
       value: obj.cents === 0 ? undefined : obj.cents / 100,
       description: obj.description,
@@ -120,95 +120,68 @@ const TransactionForm = ({
   return (
     <fetcher.Form method="post" action={`/transaction/${t.id}`}>
       <input hidden name="type" readOnly value={type} />
-      <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="category" size="md">
-            Category
-          </Label>
-          <NativeSelect
-            id="category"
-            name="category"
-            defaultValue={t.categoryId}
-            className="col-span-3"
-          >
-            {categories
-              .filter((c) => c.type === type)
-              .map((c, index) => (
-                <Fragment key={index}>
-                  <option key={c.id} value={c.id}>
-                    {c.title}
+      <Stack mt="md" mb="lg" gap="sm">
+        <NativeSelect
+          label="Category"
+          name="category"
+          defaultValue={t.categoryId}
+        >
+          {categories
+            .filter((c) => c.type === type)
+            .map((c, index) => (
+              <Fragment key={index}>
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+                {c.children.map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {`•\u00A0\u00A0${child.title}`}
                   </option>
-                  {c.children.map((child) => (
-                    <option key={child.id} value={child.id}>
-                      {`•\u00A0\u00A0${child.title}`}
-                    </option>
-                  ))}
-                </Fragment>
-              ))}
-          </NativeSelect>
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="wallet" className="text-left">
-            Wallet
-          </Label>
-          <NativeSelect
-            id="wallet"
-            name="wallet"
-            defaultValue={t.walletId}
-            className="col-span-3"
-          >
-            {wallets.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
+                ))}
+              </Fragment>
             ))}
-          </NativeSelect>
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <input
-            id="timestamp"
-            name="timestamp"
-            value={getDateTimeVal(date)}
-            readOnly
-            hidden
-          />
-          <Label htmlFor="timestamp" className="text-left">
-            Date and Time
-          </Label>
-          <DateTimePicker
-            id="timestamp"
-            value={date}
-            onChange={setDate}
-            className="col-span-3"
-            valueFormat="L HH:mm"
-          />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="value" className="text-left">
-            Value
-          </Label>
-          <TextInput
-            step={0.01}
-            type="number"
-            id="value"
-            name="value"
-            className="col-span-3"
-            defaultValue={t.value}
-            placeholder="R$ 0.00"
-          />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="description" className="text-left">
-            Description
-          </Label>
-          <Textarea
-            id="description"
-            name="description"
-            className="col-span-3"
-            defaultValue={t.description}
-          />
-        </div>
-      </div>
+        </NativeSelect>
+        <NativeSelect
+          id="wallet"
+          name="wallet"
+          defaultValue={t.walletId}
+          label="Wallet"
+        >
+          {wallets.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.name}
+            </option>
+          ))}
+        </NativeSelect>
+        <input
+          id="timestamp"
+          name="timestamp"
+          value={getDateTimeVal(date)}
+          readOnly
+          hidden
+        />
+        <DateTimePicker
+          label="Date and Time"
+          value={date}
+          onChange={setDate}
+          valueFormat="L HH:mm"
+        />
+        <TextInput
+          label="Value"
+          step={0.01}
+          type="number"
+          id="value"
+          name="value"
+          defaultValue={t.value}
+          placeholder="R$ 0.00"
+        />
+        <Textarea
+          label="Description"
+          id="description"
+          name="description"
+          defaultValue={t.description}
+        />
+      </Stack>
 
       <Flex justify="flex-end">
         <Button type="submit" disabled={loading}>

@@ -1,15 +1,7 @@
+import { TransactionsTable } from "../components/transactions-table";
 import { getAuth } from "@clerk/remix/ssr.server";
-import { DonutChart, DonutChartCell } from "@mantine/charts";
-import {
-  ActionIcon,
-  Box,
-  Button,
-  Card,
-  NativeSelect,
-  Stack,
-  Table,
-  Text,
-} from "@mantine/core";
+import { DonutChartCell, PieChart } from "@mantine/charts";
+import { Button, Card, Flex, NativeSelect, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   ActionFunctionArgs,
@@ -17,28 +9,21 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { Form, useFetcher, useLoaderData } from "@remix-run/react";
-import { IconPencil, IconTrash } from "@tabler/icons-react";
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import dayjs from "dayjs";
-import { eq, and, sql, gte, lt, inArray, desc } from "drizzle-orm";
+import { Form, useLoaderData } from "@remix-run/react";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { FormEvent, Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { z } from "zod";
 import { SavingsIllustration } from "~/components/illustrations/savings";
 import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
 import {
-  transactions as tableTransactions,
   categories as tableCategories,
+  transactions as tableTransactions,
   wallets as tableWallets,
 } from "~/db/schema.server";
 import { getNestedCategories } from "~/lib/category";
+import { getRandomColor } from "~/lib/color";
 import { formatCurrency } from "~/lib/currency";
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -113,6 +98,7 @@ export async function loader(args: LoaderFunctionArgs) {
         eq(tableTransactions.userId, userId),
         gte(tableTransactions.timestamp, date),
         lt(tableTransactions.timestamp, dateMonthLater),
+        eq(tableTransactions.walletId, 2),
         category === -1
           ? undefined
           : inArray(tableTransactions.categoryId, categoryIds),
@@ -130,6 +116,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .orderBy(desc(tableTransactions.timestamp));
   const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
+    columns: { id: true, name: true },
     where(fields, { eq }) {
       return eq(fields.userId, userId);
     },
@@ -163,21 +150,31 @@ export async function loader(args: LoaderFunctionArgs) {
     .catch([{ balance: 0 }])
     .parse(balanceResult);
 
-  const colors = ["indigo.6", "yellow.6", "teal.6", "gray.6"];
-  const donnutData = transactions.reduce<DonutChartCell[]>((acc, t) => {
-    const category = t.categoryParent ?? t.category;
-    const index = acc.findIndex((cell) => cell.name === category.title);
-    if (index === -1) {
-      acc.push({
-        name: category.title,
-        value: t.cents,
-        color: colors.shift()!,
-      });
-    } else {
-      acc[index].value += t.cents;
-    }
-    return acc;
-  }, []);
+  let donnutData = transactions
+    .reduce<DonutChartCell[]>((acc, t) => {
+      const category = t.categoryParent ?? t.category;
+      const index = acc.findIndex((cell) => cell.name === category.title);
+      if (index === -1) {
+        acc.push({
+          name: category.title,
+          value: t.cents,
+          color: getRandomColor(),
+        });
+      } else {
+        acc[index].value += t.cents;
+      }
+      return acc;
+    }, [])
+    .sort((a, b) => b.value - a.value);
+  if (donnutData.length > 5) {
+    donnutData = donnutData.slice(0, 5).concat([
+      {
+        name: "Others",
+        value: donnutData.slice(5).reduce((acc, c) => acc + c.value, 0),
+        color: getRandomColor(),
+      },
+    ]);
+  }
 
   return json(
     {
@@ -193,63 +190,6 @@ export async function loader(args: LoaderFunctionArgs) {
 }
 export type IndexLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
-const columnHelper =
-  createColumnHelper<IndexLoaderData["transactions"][number]>();
-
-const columns = [
-  columnHelper.accessor("timestamp", {
-    header: "Date",
-    cell: (info) => dayjs(info.getValue()).format("L HH:mm"),
-  }),
-  columnHelper.accessor("description", {
-    cell: (info) => info.getValue(),
-  }),
-  columnHelper.accessor("category.title", {
-    header: "Category",
-    cell: (info) => info.getValue(),
-  }),
-  columnHelper.accessor("wallet.name", {
-    header: "Wallet",
-    cell: (info) => info.getValue(),
-  }),
-  columnHelper.accessor("cents", {
-    header: "Value",
-    cell: ({ getValue, row }) => (
-      <Text
-        style={{ fontSize: "inherit" }}
-        c={row.original.type === "income" ? "green" : "red"}
-      >
-        {formatCurrency(getValue())}
-      </Text>
-    ),
-  }),
-  columnHelper.display({
-    id: "actions",
-    header: "Actions",
-    cell: ({
-      row: { original, index },
-      table: {
-        options: { meta },
-      },
-    }) => {
-      return (
-        <div className="flex gap-2">
-          <ActionIcon
-            variant="outline"
-            onClick={() => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (meta as any)?.onClickEdit(index);
-            }}
-          >
-            <IconPencil size="1rem" />
-          </ActionIcon>
-          <DeleteButton id={original.id} />
-        </div>
-      );
-    },
-  }),
-];
-
 export default function Index() {
   const {
     transactions,
@@ -264,18 +204,6 @@ export default function Index() {
     number | null
   >(null);
   const formRef = useRef<HTMLFormElement>(null);
-
-  const table = useReactTable({
-    data: transactions,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    meta: {
-      onClickEdit: (index: number) => {
-        open();
-        setEditTransactionIndex(index);
-      },
-    },
-  });
 
   return (
     <>
@@ -332,48 +260,27 @@ export default function Index() {
         Create Transaction
       </Button>
 
-      <Box>
-        <DonutChart
+      <Flex justify="center" direction="column" align="center">
+        <Text size="lg" fw={700}>
+          Distribution
+        </Text>
+        <PieChart
           data={donnutData}
           valueFormatter={(v) => formatCurrency(v)}
+          withTooltip
+          withLabelsLine
+          labelsType="percent"
+          withLabels
         />
-      </Box>
+      </Flex>
 
       {transactions.length > 0 ? (
         <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
-          <Table striped verticalSpacing="sm">
-            <Table.Thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <Table.Tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <Table.Th key={header.id} scope="col">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </Table.Th>
-                  ))}
-                </Table.Tr>
-              ))}
-            </Table.Thead>
-
-            <Table.Tbody>
-              {table.getRowModel().rows.map((row) => (
-                <Table.Tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <Table.Td key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </Table.Td>
-                  ))}
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          <TransactionsTable
+            open={open}
+            transactions={transactions}
+            setEditTransactionIndex={setEditTransactionIndex}
+          />
         </div>
       ) : (
         <div className="flex items-center justify-center flex-col mt-10">
@@ -396,31 +303,6 @@ export default function Index() {
     </>
   );
 }
-
-const DeleteButton = ({ id }: { id: number }) => {
-  const fetcher = useFetcher();
-  const loading = fetcher.state !== "idle";
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (confirm("Are you sure you want to delete this transaction?")) {
-      fetcher.submit(event.currentTarget, {
-        action: `/transaction/${id}/delete`,
-        method: "POST",
-      });
-    }
-  };
-
-  return (
-    <fetcher.Form method="post" onSubmit={handleSubmit}>
-      <input hidden name="id" defaultValue={id} />
-      <ActionIcon variant="subtle" color="red" disabled={loading} type="submit">
-        <IconTrash size="1rem" />
-      </ActionIcon>
-    </fetcher.Form>
-  );
-};
 
 export async function action({ request }: ActionFunctionArgs) {
   const url = new URL(request.url);

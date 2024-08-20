@@ -5,9 +5,10 @@ import {
   SelectCategory,
 } from "~/db/schema.server";
 
+type Category = Omit<SelectCategory, "userId">;
 export type NestedCategories = Array<
-  SelectCategory & {
-    children: SelectCategory[];
+  Category & {
+    children: Category[];
   }
 >;
 
@@ -16,7 +17,12 @@ export async function getNestedCategories(
   type: "income" | "expense" | null = null,
 ) {
   const categories = await db
-    .select()
+    .select({
+      id: categoriesTable.id,
+      title: categoriesTable.title,
+      type: categoriesTable.type,
+      parentId: categoriesTable.parentId,
+    })
     .from(categoriesTable)
     .where(
       and(
