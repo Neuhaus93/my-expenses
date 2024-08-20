@@ -72,6 +72,7 @@ export default function SidebarLayout() {
         collapsed: { mobile: !opened },
       }}
       padding="md"
+      pb="lg"
     >
       <AppShell.Header>
         <Group justify="space-between" h="100%" px="md">

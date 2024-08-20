@@ -28,14 +28,19 @@ export const columns = [
   }),
   columnHelper.accessor("cents", {
     header: "Value",
-    cell: ({ getValue, row }) => (
-      <Text
-        style={{ fontSize: "inherit" }}
-        c={row.original.type === "income" ? "green" : "red"}
-      >
-        {formatCurrency(getValue())}
-      </Text>
-    ),
+    cell: ({ getValue, row }) => {
+      const type = row.original.type;
+      let value = getValue();
+      if (type === "expense") value = -value;
+      return (
+        <Text
+          style={{ fontSize: "inherit" }}
+          c={type === "income" ? "green" : "red"}
+        >
+          {formatCurrency(value)}
+        </Text>
+      );
+    },
   }),
   columnHelper.display({
     id: "actions",
