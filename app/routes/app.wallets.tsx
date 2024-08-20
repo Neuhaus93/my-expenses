@@ -17,13 +17,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .select({
       id: walletsTable.id,
       name: walletsTable.name,
-      balance: sql<number>`sum(
-        case
-          WHEN type = 'income' THEN cents
-          WHEN type = 'expense' THEN -cents
-          ELSE 0
-        end
-      )`,
+      balance: sql<number>`sum(${transactions.cents})`,
     })
     .from(transactions)
     .rightJoin(walletsTable, eq(transactions.walletId, walletsTable.id))

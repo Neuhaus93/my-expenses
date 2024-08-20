@@ -170,8 +170,7 @@ const TransactionForm = ({
           label="Value"
           step={0.01}
           type="number"
-          id="value"
-          name="value"
+          name="cents"
           defaultValue={t.value}
           placeholder="R$ 0.00"
         />

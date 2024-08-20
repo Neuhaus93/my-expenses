@@ -10,7 +10,7 @@ import {
   redirect,
 } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sum } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Fragment, useRef, useState } from "react";
 import { z } from "zod";
@@ -98,7 +98,6 @@ export async function loader(args: LoaderFunctionArgs) {
         eq(tableTransactions.userId, userId),
         gte(tableTransactions.timestamp, date),
         lt(tableTransactions.timestamp, dateMonthLater),
-        eq(tableTransactions.walletId, 2),
         category === -1
           ? undefined
           : inArray(tableTransactions.categoryId, categoryIds),
@@ -125,15 +124,7 @@ export async function loader(args: LoaderFunctionArgs) {
     },
   });
   const balanceResultPromise = db
-    .select({
-      balance: sql<number>`sum(
-        case
-          when type = 'income' THEN cents
-          WHEN type = 'transference' THEN cents
-          WHEN type = 'expense' THEN -cents
-        end
-      )`,
-    })
+    .select({ balance: sum(tableTransactions.cents) })
     .from(tableTransactions)
     .groupBy(tableTransactions.userId)
     .where(eq(tableTransactions.userId, userId));
@@ -151,6 +142,8 @@ export async function loader(args: LoaderFunctionArgs) {
     .parse(balanceResult);
 
   let donnutData = transactions
+    .filter((t) => t.type === "expense")
+    .map((t) => ({ ...t, cents: -1 * t.cents }))
     .reduce<DonutChartCell[]>((acc, t) => {
       const category = t.categoryParent ?? t.category;
       const index = acc.findIndex((cell) => cell.name === category.title);
@@ -166,6 +159,7 @@ export async function loader(args: LoaderFunctionArgs) {
       return acc;
     }, [])
     .sort((a, b) => b.value - a.value);
+
   if (donnutData.length > 5) {
     donnutData = donnutData.slice(0, 5).concat([
       {
