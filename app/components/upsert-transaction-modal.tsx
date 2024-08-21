@@ -13,6 +13,7 @@ import { FetcherWithComponents, useFetcher } from "@remix-run/react";
 import { Fragment, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { isValidTransactionType, TransactionType } from "~/lib/transacion";
 import { IndexLoaderData } from "~/routes/app._index";
 
 export type UpsertTransactionDialogProps = {
@@ -20,11 +21,19 @@ export type UpsertTransactionDialogProps = {
   onClose: () => void;
   categories: IndexLoaderData["categories"];
   wallets: IndexLoaderData["wallets"];
-  transaction?: IndexLoaderData["transactions"][number] | null;
+  transaction: IndexLoaderData["transactions"][number] | null;
 };
 
 function getRandomFetcherKey() {
   return `upsert-transaction-${uuidv4()}`;
+}
+
+function getTransactionTab(
+  transaction: UpsertTransactionDialogProps["transaction"],
+) {
+  if (!transaction) return "expense" as const;
+  if (transaction.transference) return "transference" as const;
+  return transaction.type;
 }
 
 export const UpsertTransactionModal = ({
@@ -34,14 +43,12 @@ export const UpsertTransactionModal = ({
   wallets,
   transaction: t,
 }: UpsertTransactionDialogProps) => {
-  const [tab, setTab] = useState<"income" | "expense" | "transference">(
-    "expense",
-  );
+  const [tab, setTab] = useState(() => getTransactionTab(t));
   const [fetcherKey, setFetcherKey] = useState(getRandomFetcherKey);
   const fetcher = useFetcher({ key: fetcherKey });
 
   useEffect(() => {
-    setTab(t ? t.type : "expense");
+    setTab(() => getTransactionTab(t));
   }, [t]);
 
   useEffect(() => {
@@ -67,11 +74,19 @@ export const UpsertTransactionModal = ({
       size="lg"
     >
       <SegmentedControl
-        data={["expense", "income"]}
+        data={[
+          { label: "Expense", value: "expense" },
+          { label: "Income", value: "income" },
+          {
+            label: "Transference",
+            value: "transference",
+            disabled: wallets.length < 2,
+          },
+        ]}
         disabled={!!t}
         value={tab}
         onChange={(value) => {
-          setTab(z.enum(["expense", "income"]).catch("expense").parse(value));
+          if (isValidTransactionType(value)) setTab(value);
         }}
         fullWidth
       />
@@ -90,62 +105,77 @@ const TransactionForm = ({
   categories,
   wallets,
   type,
-  transaction,
+  transaction = null,
   fetcher,
-}: Omit<UpsertTransactionDialogProps, "opened" | "onClose"> & {
-  type: "expense" | "income" | "transference";
+}: Pick<
+  UpsertTransactionDialogProps,
+  "categories" | "wallets" | "transaction"
+> & {
+  type: TransactionType;
   fetcher: FetcherWithComponents<unknown>;
 }) => {
   const loading = fetcher.state !== "idle";
-  const t = z
-    .object({
-      id: z.number().or(z.literal("new")).catch("new"),
-      category: z.object({ id: z.number() }).catch({ id: categories[0].id }),
-      wallet: z.object({ id: z.number() }).catch({ id: wallets[0].id }),
-      timestamp: z.string().catch(Date().toString()),
-      cents: z.number().catch(0),
-      description: z.string().catch(""),
-    })
-    .transform((obj) => ({
-      id: obj.id,
-      categoryId: obj.category.id,
-      walletId: obj.wallet.id,
-      date: new Date(obj.timestamp),
-      value: obj.cents === 0 ? undefined : obj.cents / 100,
-      description: obj.description,
-    }))
-    .parse(transaction ?? {});
+  const t = (() => {
+    const emptyTransaction = {
+      type,
+      id: "new",
+      categoryId: categories[0].id,
+      walletId: wallets[0].id,
+      toWalletId: wallets[1]?.id,
+      date: new Date(),
+      value: 0,
+      description: "",
+    };
+    const baseSchema = z.object({
+      id: z.number().or(z.literal("new")),
+      categoryId: z.number().int(),
+      walletId: z.number().int(),
+      date: z.date(),
+      value: z.number().optional(),
+      description: z.string(),
+    });
+    const finalSchema = z.discriminatedUnion("type", [
+      baseSchema.extend({ type: z.enum(["expense", "income"]) }),
+      baseSchema.extend({
+        type: z.literal("transference"),
+        toWalletId: z.number().int(),
+      }),
+    ]);
+
+    return finalSchema.parse(transaction ?? emptyTransaction);
+  })();
   const [date, setDate] = useState<DateValue>(t.date);
 
   return (
     <fetcher.Form method="post" action={`/transaction/${t.id}`}>
       <input hidden name="type" readOnly value={type} />
       <Stack mt="md" mb="lg" gap="sm">
-        <NativeSelect
-          label="Category"
-          name="category"
-          defaultValue={t.categoryId}
-        >
-          {categories
-            .filter((c) => c.type === type)
-            .map((c, index) => (
-              <Fragment key={index}>
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-                {c.children.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {`•\u00A0\u00A0${child.title}`}
+        {type !== "transference" && (
+          <NativeSelect
+            label="Category"
+            name="category"
+            defaultValue={t.categoryId}
+          >
+            {categories
+              .filter((c) => c.type === type)
+              .map((c, index) => (
+                <Fragment key={index}>
+                  <option key={c.id} value={c.id}>
+                    {c.title}
                   </option>
-                ))}
-              </Fragment>
-            ))}
-        </NativeSelect>
+                  {c.children.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {`•\u00A0\u00A0${child.title}`}
+                    </option>
+                  ))}
+                </Fragment>
+              ))}
+          </NativeSelect>
+        )}
         <NativeSelect
-          id="wallet"
           name="wallet"
           defaultValue={t.walletId}
-          label="Wallet"
+          label={t.type === "transference" ? "From Wallet" : "Wallet"}
         >
           {wallets.map((w) => (
             <option key={w.id} value={w.id}>
@@ -153,6 +183,19 @@ const TransactionForm = ({
             </option>
           ))}
         </NativeSelect>
+        {t.type === "transference" && (
+          <NativeSelect
+            name="to-wallet"
+            defaultValue={t.toWalletId}
+            label="To Wallet"
+          >
+            {wallets.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </NativeSelect>
+        )}
         <input
           id="timestamp"
           name="timestamp"

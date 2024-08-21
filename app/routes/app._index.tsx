@@ -20,6 +20,7 @@ import { db } from "~/db/config.server";
 import {
   categories as tableCategories,
   transactions as tableTransactions,
+  transferences as tableTransferences,
   wallets as tableWallets,
 } from "~/db/schema.server";
 import { getNestedCategories } from "~/lib/category";
@@ -91,6 +92,11 @@ export async function loader(args: LoaderFunctionArgs) {
         id: tableCategoryParent.id,
         title: tableCategoryParent.title,
       },
+      transference: {
+        id: tableTransferences.id,
+        walletFromId: tableTransferences.walletFromId,
+        walletToId: tableTransferences.walletToId,
+      },
     })
     .from(tableTransactions)
     .where(
@@ -106,6 +112,10 @@ export async function loader(args: LoaderFunctionArgs) {
     .innerJoin(
       tableCategories,
       eq(tableTransactions.categoryId, tableCategories.id),
+    )
+    .leftJoin(
+      tableTransferences,
+      eq(tableTransactions.transferenceId, tableTransferences.id),
     )
     .leftJoin(
       tableCategoryParent,
