@@ -140,7 +140,7 @@ export async function loader(args: LoaderFunctionArgs) {
       tableTransactionTo,
       eq(tableTransferences.transactionInId, tableTransactionTo.id),
     )
-    .orderBy(desc(tableTransactions.timestamp));
+    .orderBy(desc(tableTransactions.timestamp), desc(tableTransactions.id));
   const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
     columns: { id: true, name: true },

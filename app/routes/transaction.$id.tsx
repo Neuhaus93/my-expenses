@@ -38,6 +38,10 @@ export async function action(args: ActionFunctionArgs) {
         toWallet: z.coerce.number().int(),
       }),
     ])
+    .refine(
+      (obj) => obj.type === "transference" && obj.wallet !== obj.toWallet,
+      { message: "Cannot transfer to the same wallet" },
+    )
     .transform((obj) => ({
       ...obj,
       cents: obj.type === "expense" ? -obj.cents : obj.cents,
@@ -48,35 +52,32 @@ export async function action(args: ActionFunctionArgs) {
 
   if (id === "new") {
     if (formValues.type === "transference") {
-      // Create expense transaction
-      const [{ transactionOutId }] = await db
+      // Create in and out transactions
+      const [{ id: transactionOutId }, { id: transactionInId }] = await db
         .insert(transactions)
-        .values({
-          type: "expense",
-          timestamp,
-          userId,
-          categoryId: CATEGORY_TRANSACTION_OUT,
-          walletId: walletId,
-          isTransference: true,
-          cents: -cents,
-          description,
-        })
-        .returning({ transactionOutId: transactions.id });
-
-      // Create income transaction
-      const [{ transactionInId }] = await db
-        .insert(transactions)
-        .values({
-          type: "income",
-          timestamp,
-          userId,
-          categoryId: CATEGORY_TRANSACTION_IN,
-          walletId: formValues.toWallet,
-          isTransference: true,
-          cents,
-          description,
-        })
-        .returning({ transactionInId: transactions.id });
+        .values([
+          {
+            type: "expense",
+            timestamp,
+            userId,
+            categoryId: CATEGORY_TRANSACTION_OUT,
+            walletId: walletId,
+            isTransference: true,
+            cents: -cents,
+            description,
+          },
+          {
+            type: "income",
+            timestamp,
+            userId,
+            categoryId: CATEGORY_TRANSACTION_IN,
+            walletId: formValues.toWallet,
+            isTransference: true,
+            cents,
+            description,
+          },
+        ])
+        .returning({ id: transactions.id });
 
       // Create transference
       await db.insert(transferences).values({
