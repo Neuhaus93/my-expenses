@@ -39,7 +39,7 @@ export const walletsRelations = relations(wallets, ({ one, many }) => ({
 export const transactions = pgTable("transaction", {
   id: serial("id").primaryKey(),
   cents: integer("cents").notNull(),
-  type: text("type", { enum: ["income", "expense", "transference"] }).notNull(),
+  type: text("type", { enum: ["income", "expense"] }).notNull(),
   description: text("description"),
   userId: text("user_id")
     .references(() => users.id)
@@ -50,25 +50,57 @@ export const transactions = pgTable("transaction", {
   walletId: integer("wallet_id")
     .references(() => wallets.id)
     .notNull(),
+  transferenceId: integer("transference_id").references(() => transferences.id),
   timestamp: timestamp("timestamp").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const transactionsRelations = relations(transactions, ({ one }) => ({
-  category: one(categories, {
-    fields: [transactions.categoryId],
-    references: [categories.id],
+export const tableTransactionsRelations = relations(
+  transactions,
+  ({ one }) => ({
+    category: one(categories, {
+      fields: [transactions.categoryId],
+      references: [categories.id],
+    }),
+    user: one(users, {
+      fields: [transactions.userId],
+      references: [users.id],
+    }),
+    wallet: one(wallets, {
+      fields: [transactions.walletId],
+      references: [wallets.id],
+    }),
+    transference: one(transferences, {
+      fields: [transactions.transferenceId],
+      references: [transferences.id],
+    }),
   }),
-  user: one(users, {
-    fields: [transactions.userId],
-    references: [users.id],
+);
+
+export const transferences = pgTable("transference", {
+  id: serial("id").primaryKey(),
+  walletFromId: integer("wallet_from_id")
+    .references(() => wallets.id)
+    .notNull(),
+  walletToId: integer("wallet_to_id")
+    .references(() => wallets.id)
+    .notNull(),
+});
+export const transferencesRelations = relations(
+  transferences,
+  ({ one, many }) => ({
+    walletFrom: one(wallets, {
+      fields: [transferences.walletFromId],
+      references: [wallets.id],
+    }),
+    walletTo: one(wallets, {
+      fields: [transferences.walletToId],
+      references: [wallets.id],
+    }),
+    transferences: many(transactions),
   }),
-  wallet: one(wallets, {
-    fields: [transactions.walletId],
-    references: [wallets.id],
-  }),
-}));
+);
 
 export const categories = pgTable(
   "category",
@@ -85,7 +117,7 @@ export const categories = pgTable(
     parentReference: foreignKey({
       columns: [table.parentId],
       foreignColumns: [table.id],
-      name: "parent_fk",
+      name: "category_parent_fk",
     }),
   }),
 );
