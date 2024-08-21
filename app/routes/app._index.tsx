@@ -38,9 +38,10 @@ export async function loader(args: LoaderFunctionArgs) {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  const { category, month, year } = z
+  const { category, wallet, month, year } = z
     .object({
       category: z.coerce.number().int().catch(-1),
+      wallet: z.coerce.number().int().catch(-1),
       month: z.coerce.number().int().gte(0).lte(11).catch(currentMonth),
       year: z.coerce.number().int().gte(1900).catch(currentYear),
     })
@@ -114,6 +115,7 @@ export async function loader(args: LoaderFunctionArgs) {
         category === -1
           ? undefined
           : inArray(tableTransactions.categoryId, categoryIds),
+        wallet === -1 ? undefined : eq(tableTransactions.walletId, wallet),
       ),
     )
     .innerJoin(
