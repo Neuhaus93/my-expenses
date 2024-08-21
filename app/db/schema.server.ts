@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   foreignKey,
   integer,
   pgTable,
@@ -50,57 +51,59 @@ export const transactions = pgTable("transaction", {
   walletId: integer("wallet_id")
     .references(() => wallets.id)
     .notNull(),
-  transferenceId: integer("transference_id").references(() => transferences.id),
+  isTransference: boolean("is_transference").default(false).notNull(),
   timestamp: timestamp("timestamp").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
-
-export const tableTransactionsRelations = relations(
-  transactions,
-  ({ one }) => ({
-    category: one(categories, {
-      fields: [transactions.categoryId],
-      references: [categories.id],
-    }),
-    user: one(users, {
-      fields: [transactions.userId],
-      references: [users.id],
-    }),
-    wallet: one(wallets, {
-      fields: [transactions.walletId],
-      references: [wallets.id],
-    }),
-    transference: one(transferences, {
-      fields: [transactions.transferenceId],
-      references: [transferences.id],
-    }),
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  user: one(users, {
+    fields: [transactions.userId],
+    references: [users.id],
   }),
-);
+  category: one(categories, {
+    fields: [transactions.categoryId],
+    references: [categories.id],
+  }),
+  wallet: one(wallets, {
+    fields: [transactions.walletId],
+    references: [wallets.id],
+  }),
+  transferenceOut: one(transferences, {
+    fields: [transactions.id],
+    references: [transferences.transactionOutId],
+    relationName: "transactionOut",
+  }),
+  transferenceIn: one(transferences, {
+    fields: [transactions.id],
+    references: [transferences.transactionOutId],
+    relationName: "transactionIn",
+  }),
+}));
 
 export const transferences = pgTable("transference", {
   id: serial("id").primaryKey(),
-  walletFromId: integer("wallet_from_id")
-    .references(() => wallets.id)
+  transactionOutId: integer("transaction_out_id")
+    .references(() => transactions.id)
+    .unique()
     .notNull(),
-  walletToId: integer("wallet_to_id")
-    .references(() => wallets.id)
+  transactionInId: integer("transaction_in_id")
+    .references(() => transactions.id)
+    .unique()
     .notNull(),
 });
-export const transferencesRelations = relations(
-  transferences,
-  ({ one, many }) => ({
-    walletFrom: one(wallets, {
-      fields: [transferences.walletFromId],
-      references: [wallets.id],
-    }),
-    walletTo: one(wallets, {
-      fields: [transferences.walletToId],
-      references: [wallets.id],
-    }),
-    transferences: many(transactions),
+export const transferencesRelations = relations(transferences, ({ one }) => ({
+  transactionOut: one(transactions, {
+    fields: [transferences.transactionOutId],
+    references: [transactions.id],
+    relationName: "transactionOut",
   }),
-);
+  transactionIn: one(transactions, {
+    fields: [transferences.transactionInId],
+    references: [transactions.id],
+    relationName: "transactionIn",
+  }),
+}));
 
 export const categories = pgTable(
   "category",
@@ -108,9 +111,7 @@ export const categories = pgTable(
     id: serial("id").primaryKey(),
     title: varchar("title", { length: 256 }).notNull(),
     type: text("type", { enum: ["income", "expense"] }).notNull(),
-    userId: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    userId: text("user_id").references(() => users.id),
     parentId: integer("parent_id"),
   },
   (table) => ({

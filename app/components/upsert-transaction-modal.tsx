@@ -32,7 +32,7 @@ function getTransactionTab(
   transaction: UpsertTransactionDialogProps["transaction"],
 ) {
   if (!transaction) return "expense" as const;
-  if (transaction.transference) return "transference" as const;
+  if (transaction.isTransference) return "transference" as const;
   return transaction.type;
 }
 
@@ -119,31 +119,49 @@ const TransactionForm = ({
     const emptyTransaction = {
       type,
       id: "new",
-      categoryId: categories[0].id,
-      walletId: wallets[0].id,
-      toWalletId: wallets[1]?.id,
-      date: new Date(),
-      value: 0,
+      category: { id: categories[0].id },
+      wallet: { id: wallets[0].id },
+      timestamp: Date.now(),
+      cents: 0,
       description: "",
+      ...(type === "transference" && { toWallet: wallets[1].id }),
     };
     const baseSchema = z.object({
       id: z.number().or(z.literal("new")),
-      categoryId: z.number().int(),
-      walletId: z.number().int(),
-      date: z.date(),
-      value: z.number().optional(),
-      description: z.string(),
+      category: z.object({ id: z.number().int() }).transform((obj) => obj.id),
+      wallet: z.object({ id: z.number().int() }).transform((obj) => obj.id),
+      timestamp: z.string().or(z.number()),
+      cents: z.number(),
+      description: z
+        .string()
+        .nullable()
+        .transform((str) => str ?? ""),
     });
-    const finalSchema = z.discriminatedUnion("type", [
-      baseSchema.extend({ type: z.enum(["expense", "income"]) }),
-      baseSchema.extend({
-        type: z.literal("transference"),
-        toWalletId: z.number().int(),
-      }),
-    ]);
+    const finalSchema = z
+      .discriminatedUnion("type", [
+        baseSchema.extend({ type: z.enum(["expense", "income"]) }),
+        baseSchema.extend({
+          type: z.literal("transference"),
+          // TODO: Fix this
+          toWallet: z
+            .object({ id: z.number().int() })
+            .transform((obj) => obj.id),
+          transferenceFrom: z.object({ walletId: z.number().int() }),
+          transferenceTo: z.object({ walletId: z.number().int() }),
+        }),
+      ])
+      .transform((obj) => {
+        const { timestamp, cents, ...rest } = obj;
+        return {
+          ...rest,
+          date: new Date(timestamp),
+          value: obj.cents === 0 ? undefined : cents / 100,
+        };
+      });
 
-    return finalSchema.parse(transaction ?? emptyTransaction);
+    return finalSchema.parse({ ...transaction, type } ?? emptyTransaction);
   })();
+  console.log({ transaction, t });
   const [date, setDate] = useState<DateValue>(t.date);
 
   return (
@@ -154,7 +172,7 @@ const TransactionForm = ({
           <NativeSelect
             label="Category"
             name="category"
-            defaultValue={t.categoryId}
+            defaultValue={t.category}
           >
             {categories
               .filter((c) => c.type === type)
@@ -174,7 +192,7 @@ const TransactionForm = ({
         )}
         <NativeSelect
           name="wallet"
-          defaultValue={t.walletId}
+          defaultValue={t.wallet}
           label={t.type === "transference" ? "From Wallet" : "Wallet"}
         >
           {wallets.map((w) => (
@@ -185,8 +203,8 @@ const TransactionForm = ({
         </NativeSelect>
         {t.type === "transference" && (
           <NativeSelect
-            name="to-wallet"
-            defaultValue={t.toWalletId}
+            name="toWallet"
+            defaultValue={t.toWallet}
             label="To Wallet"
           >
             {wallets.map((w) => (
