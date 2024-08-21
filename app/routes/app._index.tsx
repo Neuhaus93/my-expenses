@@ -10,7 +10,7 @@ import {
   redirect,
 } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import { and, desc, eq, gte, inArray, lt, sum } from "drizzle-orm";
+import { or, and, desc, eq, gte, inArray, lt, sum } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Fragment, useRef, useState } from "react";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
 import {
   categories as tableCategories,
+  transferences as tableTransferences,
   transactions as tableTransactions,
   wallets as tableWallets,
 } from "~/db/schema.server";
@@ -72,6 +73,9 @@ export async function loader(args: LoaderFunctionArgs) {
     .concat([category]);
 
   const tableCategoryParent = alias(tableCategories, "parent");
+  const tableTransactionFrom = alias(tableTransactions, "from");
+  const tableTransactionTo = alias(tableTransactions, "to");
+
   const transactionsPromise = db
     .select({
       id: tableTransactions.id,
@@ -79,6 +83,7 @@ export async function loader(args: LoaderFunctionArgs) {
       type: tableTransactions.type,
       description: tableTransactions.description,
       timestamp: tableTransactions.timestamp,
+      isTransference: tableTransactions.isTransference,
       wallet: {
         id: tableWallets.id,
         name: tableWallets.name,
@@ -90,6 +95,14 @@ export async function loader(args: LoaderFunctionArgs) {
       categoryParent: {
         id: tableCategoryParent.id,
         title: tableCategoryParent.title,
+      },
+      transferenceFrom: {
+        id: tableTransactionFrom.id,
+        walletId: tableTransactionFrom.walletId,
+      },
+      transferenceTo: {
+        id: tableTransactionTo.id,
+        walletId: tableTransactionTo.walletId,
       },
     })
     .from(tableTransactions)
@@ -107,12 +120,27 @@ export async function loader(args: LoaderFunctionArgs) {
       tableCategories,
       eq(tableTransactions.categoryId, tableCategories.id),
     )
+    .innerJoin(tableWallets, eq(tableTransactions.walletId, tableWallets.id))
     .leftJoin(
       tableCategoryParent,
       eq(tableCategories.parentId, tableCategoryParent.id),
     )
-    .innerJoin(tableWallets, eq(tableTransactions.walletId, tableWallets.id))
-    .orderBy(desc(tableTransactions.timestamp));
+    .leftJoin(
+      tableTransferences,
+      or(
+        eq(tableTransactions.id, tableTransferences.transactionOutId),
+        eq(tableTransactions.id, tableTransferences.transactionInId),
+      ),
+    )
+    .leftJoin(
+      tableTransactionFrom,
+      eq(tableTransferences.transactionOutId, tableTransactionFrom.id),
+    )
+    .leftJoin(
+      tableTransactionTo,
+      eq(tableTransferences.transactionInId, tableTransactionTo.id),
+    )
+    .orderBy(desc(tableTransactions.timestamp), desc(tableTransactions.id));
   const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
     columns: { id: true, name: true },
@@ -142,7 +170,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .parse(balanceResult);
 
   let donnutData = transactions
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !t.isTransference)
     .map((t) => ({ ...t, cents: -1 * t.cents }))
     .reduce<DonutChartCell[]>((acc, t) => {
       const category = t.categoryParent ?? t.category;
@@ -256,7 +284,7 @@ export default function Index() {
 
       <Flex justify="center" direction="column" align="center">
         <Text size="lg" fw={700}>
-          Distribution
+          Expenses
         </Text>
         <PieChart
           data={donnutData}
