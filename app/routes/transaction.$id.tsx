@@ -38,10 +38,14 @@ export async function action(args: ActionFunctionArgs) {
         toWallet: z.coerce.number().int(),
       }),
     ])
-    .refine(
-      (obj) => obj.type === "transference" && obj.wallet !== obj.toWallet,
-      { message: "Cannot transfer to the same wallet" },
-    )
+    .superRefine((obj, ctx) => {
+      if (obj.type === "transference" && obj.wallet === obj.toWallet) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Cannot transfer to the same wallet",
+        });
+      }
+    })
     .transform((obj) => ({
       ...obj,
       cents: obj.type === "expense" ? -obj.cents : obj.cents,

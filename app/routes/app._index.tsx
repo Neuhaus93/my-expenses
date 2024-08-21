@@ -170,7 +170,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .parse(balanceResult);
 
   let donnutData = transactions
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !t.isTransference)
     .map((t) => ({ ...t, cents: -1 * t.cents }))
     .reduce<DonutChartCell[]>((acc, t) => {
       const category = t.categoryParent ?? t.category;
@@ -284,7 +284,7 @@ export default function Index() {
 
       <Flex justify="center" direction="column" align="center">
         <Text size="lg" fw={700}>
-          Distribution
+          Expenses
         </Text>
         <PieChart
           data={donnutData}
