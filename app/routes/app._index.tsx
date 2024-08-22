@@ -145,7 +145,7 @@ export async function loader(args: LoaderFunctionArgs) {
     .orderBy(desc(tableTransactions.timestamp), desc(tableTransactions.id));
   const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
-    columns: { id: true, name: true },
+    columns: { id: true, name: true, initialBalance: true },
     where(fields, { eq }) {
       return eq(fields.userId, userId);
     },
@@ -206,7 +206,7 @@ export async function loader(args: LoaderFunctionArgs) {
       categories,
       wallets,
       defaultCategory: category,
-      balance,
+      balance: balance + wallets.reduce((acc, w) => acc + w.initialBalance, 0),
       donnutData,
     },
     200,
