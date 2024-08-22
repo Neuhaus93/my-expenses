@@ -4,7 +4,7 @@ import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { eq, sql } from "drizzle-orm";
 import { db } from "~/db/config.server";
-import { transactions, wallets as walletsTable } from "~/db/schema.server";
+import { transactions, wallets as tableWallets } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -15,15 +15,16 @@ export async function loader(args: LoaderFunctionArgs) {
 
   const wallets = await db
     .select({
-      id: walletsTable.id,
-      name: walletsTable.name,
-      balance: sql<number>`sum(${transactions.cents})`,
+      id: tableWallets.id,
+      name: tableWallets.name,
+      initialBalance: tableWallets.initialBalance,
+      balance: sql<number>`cast((sum(${transactions.cents}) + ${tableWallets.initialBalance}) as int)`,
     })
     .from(transactions)
-    .rightJoin(walletsTable, eq(transactions.walletId, walletsTable.id))
-    .where(eq(walletsTable.userId, userId))
-    .orderBy(walletsTable.name)
-    .groupBy(transactions.userId, walletsTable.id);
+    .rightJoin(tableWallets, eq(transactions.walletId, tableWallets.id))
+    .where(eq(tableWallets.userId, userId))
+    .orderBy(tableWallets.name)
+    .groupBy(transactions.userId, tableWallets.id);
 
   return { wallets };
 }
