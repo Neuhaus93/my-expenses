@@ -1,5 +1,12 @@
 import { getAuth } from "@clerk/remix/ssr.server";
-import { Box, List, SegmentedControl, Title } from "@mantine/core";
+import {
+  Avatar,
+  Box,
+  Group,
+  List,
+  SegmentedControl,
+  Title,
+} from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { z } from "zod";
@@ -54,11 +61,35 @@ export default function CategoriesPage() {
       <List mt="lg">
         {nestedCategories.map((category) => (
           <List.Item key={category.id}>
-            {category.title}
+            <Group gap="sm">
+              <Avatar>
+                <img
+                  alt="category icon"
+                  src={`/assets/categories/${category.iconName}`}
+                  width="20"
+                  height="20"
+                />
+              </Avatar>
+
+              {category.title}
+            </Group>
             {category.children.length > 0 && (
               <List>
                 {category.children.map((child) => (
-                  <List.Item key={child.id}>{child.title}</List.Item>
+                  <List.Item key={child.id}>
+                    <Group gap="sm">
+                      <Avatar>
+                        <img
+                          alt="category icon"
+                          src={`/assets/categories/${child.iconName}`}
+                          width="20"
+                          height="20"
+                        />
+                      </Avatar>
+
+                      {child.title}
+                    </Group>
+                  </List.Item>
                 ))}
               </List>
             )}

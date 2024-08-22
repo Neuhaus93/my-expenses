@@ -92,6 +92,7 @@ export async function loader(args: LoaderFunctionArgs) {
       category: {
         id: tableCategories.id,
         title: tableCategories.title,
+        iconName: tableCategories.iconName,
       },
       categoryParent: {
         id: tableCategoryParent.id,
