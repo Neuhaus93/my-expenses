@@ -1,6 +1,8 @@
 import { getAuth } from "@clerk/remix/ssr.server";
 import {
+  ActionIcon,
   Avatar,
+  Box,
   Card,
   Chip,
   Container,
@@ -9,9 +11,13 @@ import {
   Stack,
   Text,
   Title,
+  useComputedColorScheme,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
-import { useLoaderData, useSearchParams } from "@remix-run/react";
+import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
+import { IconTrash } from "@tabler/icons-react";
+import { FormEvent, useEffect } from "react";
 import { z } from "zod";
 import { CreateCategoryModal } from "~/components/create-category-modal";
 import { getNestedCategories } from "~/lib/category";
@@ -79,47 +85,108 @@ const CategoryItem = ({
 }: {
   category: CategoriesLoaderData["nestedCategories"][number];
 }) => {
+  const colorScheme = useComputedColorScheme();
+
   return (
-    <Card>
-      <Stack gap="sm">
-        <Group>
-          <Avatar>
-            <img
-              alt="category icon"
-              src={`/assets/categories/${category.iconName}`}
-              width="20"
-              height="20"
-            />
-          </Avatar>
+    <Card withBorder shadow="md" radius="md">
+      <Group>
+        <Stack flex={1} gap="sm">
+          <Group>
+            <Avatar>
+              <img
+                alt="category icon"
+                src={`/assets/categories/${category.iconName}`}
+                width="20"
+                height="20"
+              />
+            </Avatar>
 
-          <Text fw={700}>{category.title}</Text>
-        </Group>
+            <Text fw={700}>{category.title}</Text>
+          </Group>
 
-        <Group
-          gap="sm"
-          display={category.children.length === 0 ? "none" : "flex"}
-        >
-          {category.children.map((child) => (
-            <Chip
-              key={child.id}
-              variant="filled"
-              defaultChecked
-              radius="sm"
-              color="gray"
-              icon={
-                <img
-                  alt="category icon"
-                  src={`/assets/categories/${child.iconName}`}
-                  width="14"
-                  height="14"
-                />
-              }
-            >
-              {child.title}
-            </Chip>
-          ))}
-        </Group>
-      </Stack>
+          <Group
+            gap="sm"
+            display={category.children.length === 0 ? "none" : "flex"}
+          >
+            {category.children.map((child) => (
+              <Chip
+                key={child.id}
+                variant={colorScheme === "dark" ? "filled" : "outline"}
+                checked
+                radius="sm"
+                color={colorScheme === "dark" ? "gray" : "cyan"}
+                readOnly
+                style={{ pointerEvents: "none" }}
+                icon={
+                  <img
+                    alt="category icon"
+                    src={`/assets/categories/${child.iconName}`}
+                    width="14"
+                    height="14"
+                  />
+                }
+              >
+                {child.title}
+              </Chip>
+            ))}
+          </Group>
+        </Stack>
+        <DeleteButton id={category.id} />
+      </Group>
     </Card>
+  );
+};
+
+const DeleteButton = ({ id }: { id: number }) => {
+  const fetcher = useFetcher();
+  const loading = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    const dataSafeParse = z
+      .discriminatedUnion("ok", [
+        z.object({ ok: z.literal(false), message: z.string() }),
+        z.object({ ok: z.literal(true) }),
+      ])
+      .safeParse(fetcher.data);
+
+    if (dataSafeParse.success && !dataSafeParse.data.ok) {
+      notifications.show({
+        title: "Error deleting the category",
+        message: dataSafeParse.data.message,
+        position: "top-right",
+        color: "red",
+      });
+    }
+  }, [fetcher.data]);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (confirm("Are you sure you want to delete this category?")) {
+      fetcher.submit(event.currentTarget, {
+        action: `/category/${id}/delete`,
+        method: "POST",
+      });
+    }
+  };
+
+  return (
+    <Box mr="xs">
+      <fetcher.Form method="post" onSubmit={handleSubmit}>
+        <input hidden name="id" defaultValue={id} />
+        <ActionIcon
+          variant="subtle"
+          size="lg"
+          radius="xl"
+          color="dark"
+          disabled={loading}
+          type="submit"
+        >
+          <IconTrash size="1.4rem" />
+        </ActionIcon>
+      </fetcher.Form>
+    </Box>
   );
 };

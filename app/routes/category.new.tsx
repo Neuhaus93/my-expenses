@@ -10,6 +10,7 @@ export async function action(args: ActionFunctionArgs) {
   if (!userId) {
     return redirect("/sign-in");
   }
+
   const formData = await args.request.formData();
   const formObj = Object.fromEntries(formData.entries());
   const formSchema = z.object({
@@ -22,7 +23,6 @@ export async function action(args: ActionFunctionArgs) {
       .transform((value) => !!value),
     parent: z.coerce.number().int(),
   });
-
   const {
     type,
     title,
