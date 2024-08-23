@@ -1,4 +1,4 @@
-import { ActionIcon, Text } from "@mantine/core";
+import { ActionIcon, Avatar, Group, Text } from "@mantine/core";
 import { useFetcher } from "@remix-run/react";
 import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { createColumnHelper } from "@tanstack/react-table";
@@ -20,7 +20,22 @@ export const columns = [
   }),
   columnHelper.accessor("category.title", {
     header: "Category",
-    cell: (info) => info.getValue(),
+    cell: ({ getValue, row }) => {
+      const iconName = row.original.category.iconName;
+      return (
+        <Group gap="xs">
+          <Avatar size="sm">
+            <img
+              alt="category icon"
+              src={`/assets/categories/${iconName}`}
+              width="15"
+              height="15"
+            />
+          </Avatar>
+          <Text>{getValue()}</Text>
+        </Group>
+      );
+    },
   }),
   columnHelper.accessor("wallet.name", {
     header: "Wallet",
@@ -35,7 +50,7 @@ export const columns = [
       return (
         <Text
           style={{ fontSize: "inherit" }}
-          c={type === "income" ? "green" : "red"}
+          c={type === "income" ? "lime.8" : "red.8"}
         >
           {formatCurrency(value)}
         </Text>
