@@ -1,3 +1,4 @@
+import { CATEGORY_ICON_LIST } from "../lib/categories";
 import { getAuth } from "@clerk/remix/ssr.server";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { z } from "zod";
@@ -14,6 +15,7 @@ export async function action(args: ActionFunctionArgs) {
   const formSchema = z.object({
     type: z.enum(["income", "expense"]),
     title: z.string(),
+    iconName: z.enum(CATEGORY_ICON_LIST),
     isParent: z
       .literal("on")
       .optional()
@@ -21,7 +23,13 @@ export async function action(args: ActionFunctionArgs) {
     parent: z.coerce.number().int(),
   });
 
-  const { type, title, isParent, parent: parentId } = formSchema.parse(formObj);
+  const {
+    type,
+    title,
+    isParent,
+    iconName,
+    parent: parentId,
+  } = formSchema.parse(formObj);
 
   if (!isParent) {
     const parent = await db.query.categories.findFirst({
@@ -45,6 +53,7 @@ export async function action(args: ActionFunctionArgs) {
   await db.insert(categories).values({
     title,
     userId,
+    iconName,
     type,
     parentId: isParent ? null : parentId,
   });

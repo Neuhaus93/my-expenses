@@ -1,8 +1,8 @@
 import { getAuth } from "@clerk/remix/ssr.server";
 import {
   Avatar,
-  Box,
   Card,
+  Chip,
   Container,
   Group,
   SegmentedControl,
@@ -45,10 +45,11 @@ export default function CategoriesPage() {
         Categories
       </Title>
 
-      <CreateCategoryModal type={type} parentCategories={nestedCategories} />
+      <Group mt="lg">
+        <CreateCategoryModal type={type} parentCategories={nestedCategories} />
 
-      <Box mt="lg">
         <SegmentedControl
+          size="sm"
           value={type}
           onChange={(value) => {
             setSearchParams((prev) => {
@@ -62,9 +63,9 @@ export default function CategoriesPage() {
             { value: "income", label: "Income" },
           ]}
         />
-      </Box>
+      </Group>
 
-      <Stack>
+      <Stack mt="lg" gap="sm">
         {nestedCategories.map((category) => (
           <CategoryItem key={category.id} category={category} />
         ))}
@@ -79,8 +80,8 @@ const CategoryItem = ({
   category: CategoriesLoaderData["nestedCategories"][number];
 }) => {
   return (
-    <Card padding="sm">
-      <Stack>
+    <Card>
+      <Stack gap="sm">
         <Group>
           <Avatar>
             <img
@@ -99,23 +100,23 @@ const CategoryItem = ({
           display={category.children.length === 0 ? "none" : "flex"}
         >
           {category.children.map((child) => (
-            <Group
+            <Chip
               key={child.id}
-              gap="sm"
-              bd="1px solid cyan.2"
-              style={(theme) => ({
-                padding: "2px 8px",
-                borderRadius: theme.radius.sm,
-              })}
+              variant="filled"
+              defaultChecked
+              radius="sm"
+              color="gray"
+              icon={
+                <img
+                  alt="category icon"
+                  src={`/assets/categories/${child.iconName}`}
+                  width="14"
+                  height="14"
+                />
+              }
             >
-              <img
-                alt="category icon"
-                src={`/assets/categories/${child.iconName}`}
-                width="14"
-                height="14"
-              />
-              <Text size="sm">{child.title}</Text>
-            </Group>
+              {child.title}
+            </Chip>
           ))}
         </Group>
       </Stack>

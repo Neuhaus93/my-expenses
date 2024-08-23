@@ -276,4 +276,4 @@ export const CATEGORY_ICON_LIST = [
   "wifi.png",
   "winter-hat.png",
   "yarn-ball.png",
-];
+] as const;
