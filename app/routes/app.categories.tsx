@@ -1,5 +1,15 @@
 import { getAuth } from "@clerk/remix/ssr.server";
-import { Box, List, SegmentedControl, Title } from "@mantine/core";
+import {
+  Avatar,
+  Card,
+  Chip,
+  Container,
+  Group,
+  SegmentedControl,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { z } from "zod";
@@ -21,21 +31,25 @@ export async function loader(args: LoaderFunctionArgs) {
   const nestedCategories = await getNestedCategories(userId, type);
   return { type, nestedCategories };
 }
+export type CategoriesLoaderData = ReturnType<
+  typeof useLoaderData<typeof loader>
+>;
 
 export default function CategoriesPage() {
   const { type, nestedCategories } = useLoaderData<typeof loader>();
   const [, setSearchParams] = useSearchParams();
 
   return (
-    <div>
-      <Title order={2} mb="lg">
+    <Container>
+      <Title order={2} mb="lg" ta="center">
         Categories
       </Title>
 
-      <CreateCategoryModal type={type} parentCategories={nestedCategories} />
+      <Group mt="lg">
+        <CreateCategoryModal type={type} parentCategories={nestedCategories} />
 
-      <Box mt="lg">
         <SegmentedControl
+          size="sm"
           value={type}
           onChange={(value) => {
             setSearchParams((prev) => {
@@ -49,22 +63,63 @@ export default function CategoriesPage() {
             { value: "income", label: "Income" },
           ]}
         />
-      </Box>
+      </Group>
 
-      <List mt="lg">
+      <Stack mt="lg" gap="sm">
         {nestedCategories.map((category) => (
-          <List.Item key={category.id}>
-            {category.title}
-            {category.children.length > 0 && (
-              <List>
-                {category.children.map((child) => (
-                  <List.Item key={child.id}>{child.title}</List.Item>
-                ))}
-              </List>
-            )}
-          </List.Item>
+          <CategoryItem key={category.id} category={category} />
         ))}
-      </List>
-    </div>
+      </Stack>
+    </Container>
   );
 }
+
+const CategoryItem = ({
+  category,
+}: {
+  category: CategoriesLoaderData["nestedCategories"][number];
+}) => {
+  return (
+    <Card>
+      <Stack gap="sm">
+        <Group>
+          <Avatar>
+            <img
+              alt="category icon"
+              src={`/assets/categories/${category.iconName}`}
+              width="20"
+              height="20"
+            />
+          </Avatar>
+
+          <Text fw={700}>{category.title}</Text>
+        </Group>
+
+        <Group
+          gap="sm"
+          display={category.children.length === 0 ? "none" : "flex"}
+        >
+          {category.children.map((child) => (
+            <Chip
+              key={child.id}
+              variant="filled"
+              defaultChecked
+              radius="sm"
+              color="gray"
+              icon={
+                <img
+                  alt="category icon"
+                  src={`/assets/categories/${child.iconName}`}
+                  width="14"
+                  height="14"
+                />
+              }
+            >
+              {child.title}
+            </Chip>
+          ))}
+        </Group>
+      </Stack>
+    </Card>
+  );
+};

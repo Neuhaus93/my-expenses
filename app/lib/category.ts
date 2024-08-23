@@ -22,6 +22,7 @@ export async function getNestedCategories(
       title: categoriesTable.title,
       type: categoriesTable.type,
       parentId: categoriesTable.parentId,
+      iconName: categoriesTable.iconName,
     })
     .from(categoriesTable)
     .where(

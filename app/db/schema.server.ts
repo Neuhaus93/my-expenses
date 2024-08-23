@@ -113,6 +113,7 @@ export const categories = pgTable(
     type: text("type", { enum: ["income", "expense"] }).notNull(),
     userId: text("user_id").references(() => users.id),
     parentId: integer("parent_id"),
+    iconName: varchar("icon_name", { length: 255 }).notNull(),
   },
   (table) => ({
     parentReference: foreignKey({
