@@ -120,7 +120,7 @@ export const categories = pgTable(
       columns: [table.parentId],
       foreignColumns: [table.id],
       name: "category_parent_fk",
-    }),
+    }).onDelete("cascade"),
   }),
 );
 

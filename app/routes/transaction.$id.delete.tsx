@@ -1,21 +1,31 @@
-import { ActionFunctionArgs, json } from "@remix-run/node";
-import { eq, or, inArray } from "drizzle-orm";
+import { getAuth } from "@clerk/remix/ssr.server";
+import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
+import { and, eq, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db/config.server";
 import { transactions, transferences } from "~/db/schema.server";
 
-export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
+export async function action(args: ActionFunctionArgs) {
+  const { userId } = await getAuth(args);
+  if (!userId) {
+    return redirect("/sign-in");
+  }
 
+  const formData = await args.request.formData();
   const formObj = Object.fromEntries(formData.entries());
   const formSchema = z.object({
     id: z.coerce.number().int(),
   });
   const { id } = formSchema.parse(formObj);
+
   const [transaction] = await db
     .select()
     .from(transactions)
-    .where(eq(transactions.id, id));
+    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+  if (!transaction) {
+    return json({ ok: false, error: "Transaction not found" }, { status: 400 });
+  }
+
   if (transaction.isTransference) {
     const [transference] = await db
       .select()

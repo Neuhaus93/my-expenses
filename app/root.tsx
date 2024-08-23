@@ -5,6 +5,8 @@ import "@mantine/charts/styles.css";
 import { ColorSchemeScript, createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
+import { Notifications } from "@mantine/notifications";
+import "@mantine/notifications/styles.css";
 import type {
   LinksFunction,
   LoaderFunction,
@@ -50,6 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <MantineProvider theme={theme} defaultColorScheme="auto">
+          <Notifications />
           {children}
         </MantineProvider>
         <ScrollRestoration />
