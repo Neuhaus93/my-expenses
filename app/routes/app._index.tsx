@@ -1,7 +1,7 @@
 import { TransactionsTable } from "../components/transactions-table";
 import { getAuth } from "@clerk/remix/ssr.server";
 import { DonutChartCell, PieChart } from "@mantine/charts";
-import { Button, Card, Flex, Stack, Text } from "@mantine/core";
+import { Button, Card, Flex, Group, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   ActionFunctionArgs,
@@ -202,6 +202,16 @@ export async function loader(args: LoaderFunctionArgs) {
     ]);
   }
 
+  let totalIncome = 0;
+  let totalExpense = 0;
+  transactions.forEach((t) => {
+    if (t.type === "income") {
+      totalIncome += t.cents;
+    } else {
+      totalExpense += t.cents;
+    }
+  });
+
   return json(
     {
       transactions,
@@ -209,6 +219,8 @@ export async function loader(args: LoaderFunctionArgs) {
       wallets,
       defaultCategory: category,
       balance: balance + wallets.reduce((acc, w) => acc + w.initialBalance, 0),
+      income: totalIncome,
+      expense: totalExpense,
       donnutData,
     },
     200,
@@ -223,6 +235,8 @@ export default function Index() {
     wallets,
     defaultCategory,
     balance,
+    income,
+    expense,
     donnutData,
   } = useLoaderData<typeof loader>();
   const [opened, { open, close }] = useDisclosure(false);
@@ -234,12 +248,20 @@ export default function Index() {
 
   return (
     <>
-      <Card mb={16} shadow="xs" radius="md" w={200}>
-        <Stack gap="sm">
-          <Text size="sm">Current Balance</Text>
-          <Text fw={500}>{formatCurrency(balance)}</Text>
-        </Stack>
-      </Card>
+      <Group mb={16}>
+        {[
+          { title: "Current Balance", value: formatCurrency(balance) },
+          { title: "Income", value: formatCurrency(income) },
+          { title: "Expense", value: formatCurrency(expense) },
+        ].map(({ title, value }) => (
+          <Card key={title} shadow="xs" radius="md" w={200}>
+            <Stack gap="sm">
+              <Text size="sm">{title}</Text>
+              <Text fw={500}>{value}</Text>
+            </Stack>
+          </Card>
+        ))}
+      </Group>
 
       <categoryFetcher.Form style={{ width: 220 }}>
         <CategoriesSelect
