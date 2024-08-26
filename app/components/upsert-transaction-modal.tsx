@@ -13,6 +13,7 @@ import { FetcherWithComponents, useFetcher } from "@remix-run/react";
 import { Fragment, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { CategoriesSelect } from "~/components/categories-select";
 import { isValidTransactionType, TransactionType } from "~/lib/transacion";
 import { IndexLoaderData } from "~/routes/app._index";
 
@@ -119,7 +120,7 @@ const TransactionForm = ({
     const emptyTransaction = {
       tab,
       id: "new",
-      category: { id: categories[0].id },
+      category: { id: categories.find((c) => c.type === tab)?.id ?? -1 },
       wallet: { id: wallets[0].id },
       timestamp: Date.now(),
       cents: undefined,
@@ -175,26 +176,11 @@ const TransactionForm = ({
       <input hidden name="type" readOnly value={tab} />
       <Stack mt="md" mb="lg" gap="sm">
         {t.tab !== "transference" && (
-          <NativeSelect
+          <CategoriesSelect
             label="Category"
-            name="category"
-            defaultValue={t.category}
-          >
-            {categories
-              .filter((c) => c.type === tab)
-              .map((c, index) => (
-                <Fragment key={index}>
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                  {c.children.map((child) => (
-                    <option key={child.id} value={child.id}>
-                      {`•\u00A0\u00A0${child.title}`}
-                    </option>
-                  ))}
-                </Fragment>
-              ))}
-          </NativeSelect>
+            defaultCategoryId={t.category}
+            categories={categories.filter((c) => c.type === tab)}
+          />
         )}
         <NativeSelect
           name="wallet"
