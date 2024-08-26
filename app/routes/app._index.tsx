@@ -1,7 +1,7 @@
 import { TransactionsTable } from "../components/transactions-table";
 import { getAuth } from "@clerk/remix/ssr.server";
 import { DonutChartCell, PieChart } from "@mantine/charts";
-import { Button, Card, Flex, NativeSelect, Stack, Text } from "@mantine/core";
+import { Button, Card, Flex, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   ActionFunctionArgs,
@@ -9,18 +9,19 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
-import { or, and, desc, eq, gte, inArray, lt, sum } from "drizzle-orm";
+import { useFetcher, useLoaderData, useSubmit } from "@remix-run/react";
+import { and, desc, eq, gte, inArray, lt, or, sum } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { Fragment, useRef, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
+import { CategoriesSelect } from "~/components/categories-select";
 import { SavingsIllustration } from "~/components/illustrations/savings";
 import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
 import { db } from "~/db/config.server";
 import {
   categories as tableCategories,
-  transferences as tableTransferences,
   transactions as tableTransactions,
+  transferences as tableTransferences,
   wallets as tableWallets,
 } from "~/db/schema.server";
 import { getNestedCategories } from "~/lib/category";
@@ -228,7 +229,8 @@ export default function Index() {
   const [editTransactionIndex, setEditTransactionIndex] = useState<
     number | null
   >(null);
-  const formRef = useRef<HTMLFormElement>(null);
+  const categoryFetcher = useFetcher();
+  const submit = useSubmit();
 
   return (
     <>
@@ -239,44 +241,28 @@ export default function Index() {
         </Stack>
       </Card>
 
-      <Form
-        ref={formRef}
-        method="post"
-        className="mb-5 flex items-end space-x-2 w-[180x]"
-      >
-        <NativeSelect
-          label="Select a category"
-          name="category"
-          defaultValue={defaultCategory}
-          onChange={() => {
-            if (formRef.current) {
-              formRef.current.dispatchEvent(
-                new Event("submit", { cancelable: true, bubbles: true }),
-              );
-            }
-          }}
-        >
-          <option value="-1">All Categories</option>
-          {categories.map((category, index) => (
-            <Fragment key={index}>
-              <option key={category.id} value={category.id}>
-                {category.title}
-              </option>
-              {category.children.map((child) => (
-                <option key={child.id} value={child.id}>
-                  {`•\u00A0\u00A0${child.title}`}
-                </option>
-              ))}
-            </Fragment>
-          ))}
-        </NativeSelect>
-
-        <button type="submit" className="sr-only">
-          Filter
-        </button>
-      </Form>
+      <categoryFetcher.Form style={{ width: 220 }}>
+        <CategoriesSelect
+          label="Filter by Category"
+          defaultCategoryId={defaultCategory}
+          hideChildren
+          categories={[
+            {
+              id: -1,
+              title: "All Categories",
+              iconName: "bill.png",
+              children: [],
+              parentId: null,
+              type: "expense",
+            },
+            ...categories,
+          ]}
+          onSubmit={(category) => submit({ category }, { method: "post" })}
+        />
+      </categoryFetcher.Form>
 
       <Button
+        mt="lg"
         onClick={() => {
           setEditTransactionIndex(null);
           open();
@@ -336,7 +322,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const formObj = Object.fromEntries(formData.entries());
   const { category } = z
-    .object({ category: z.coerce.number().int().catch(-1) })
+    .object({ category: z.coerce.number().int() })
     .parse(formObj);
 
   if (category !== -1) searchParams.set("category", category.toString());
