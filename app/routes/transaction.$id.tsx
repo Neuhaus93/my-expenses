@@ -4,10 +4,7 @@ import { eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db/config.server";
 import { transactions, transferences } from "~/db/schema.server";
-
-// TODO: Don't make this hard-coded
-const CATEGORY_TRANSACTION_IN = 49;
-const CATEGORY_TRANSACTION_OUT = 50;
+import { CATEGORY_TRANSACTION } from "~/lib/category";
 
 export async function action(args: ActionFunctionArgs) {
   const { userId } = await getAuth(args);
@@ -64,7 +61,7 @@ export async function action(args: ActionFunctionArgs) {
             type: "expense",
             timestamp,
             userId,
-            categoryId: CATEGORY_TRANSACTION_OUT,
+            categoryId: CATEGORY_TRANSACTION.OUT,
             walletId: walletId,
             isTransference: true,
             cents: -cents,
@@ -74,7 +71,7 @@ export async function action(args: ActionFunctionArgs) {
             type: "income",
             timestamp,
             userId,
-            categoryId: CATEGORY_TRANSACTION_IN,
+            categoryId: CATEGORY_TRANSACTION.IN,
             walletId: formValues.toWallet,
             isTransference: true,
             cents,
