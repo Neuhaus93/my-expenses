@@ -88,7 +88,7 @@ const CategoryItem = ({
   const colorScheme = useComputedColorScheme();
 
   return (
-    <Card withBorder shadow="md" radius="md">
+    <Card withBorder shadow="sm" radius="md">
       <Group>
         <Stack flex={1} gap="sm">
           <Group>

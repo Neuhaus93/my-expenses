@@ -24,7 +24,7 @@ import {
   transferences as tableTransferences,
   wallets as tableWallets,
 } from "~/db/schema.server";
-import { getNestedCategories } from "~/lib/category";
+import { CATEGORY_TRANSACTION, getNestedCategories } from "~/lib/category";
 import { getRandomColor } from "~/lib/color";
 import { formatCurrency } from "~/lib/currency";
 
@@ -205,9 +205,12 @@ export async function loader(args: LoaderFunctionArgs) {
   let totalIncome = 0;
   let totalExpense = 0;
   transactions.forEach((t) => {
-    if (t.type === "income") {
+    if (t.type === "income" && t.category.id !== CATEGORY_TRANSACTION.IN) {
       totalIncome += t.cents;
-    } else {
+    } else if (
+      t.type === "expense" &&
+      t.category.id !== CATEGORY_TRANSACTION.OUT
+    ) {
       totalExpense += t.cents;
     }
   });

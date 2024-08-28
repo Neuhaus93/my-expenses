@@ -12,6 +12,12 @@ export type NestedCategories = Array<
   }
 >;
 
+// TODO: Don't make this hard-coded
+export const CATEGORY_TRANSACTION = {
+  IN: 49,
+  OUT: 50,
+};
+
 export async function getNestedCategories(
   userId: string,
   type: "income" | "expense" | null = null,
