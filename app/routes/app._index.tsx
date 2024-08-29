@@ -1,6 +1,6 @@
 import { TransactionsTable } from "../components/transactions-table";
 import { getAuth } from "@clerk/remix/ssr.server";
-import { DonutChartCell, PieChart } from "@mantine/charts";
+import { PieChart } from "@mantine/charts";
 import { Button, Card, Flex, Group, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -24,9 +24,9 @@ import {
   transferences as tableTransferences,
   wallets as tableWallets,
 } from "~/db/schema.server";
-import { CATEGORY_TRANSACTION, getNestedCategories } from "~/lib/category";
-import { getRandomColor } from "~/lib/color";
+import { getNestedCategories } from "~/lib/category";
 import { formatCurrency } from "~/lib/currency";
+import { calculateDashboardData } from "~/lib/transacion";
 
 export async function loader(args: LoaderFunctionArgs) {
   const { userId } = await getAuth(args);
@@ -173,47 +173,8 @@ export async function loader(args: LoaderFunctionArgs) {
     .catch([{ balance: 0 }])
     .parse(balanceResult);
 
-  let donnutData = transactions
-    .filter((t) => t.type === "expense" && !t.isTransference)
-    .map((t) => ({ ...t, cents: -1 * t.cents }))
-    .reduce<DonutChartCell[]>((acc, t) => {
-      const category = t.categoryParent ?? t.category;
-      const index = acc.findIndex((cell) => cell.name === category.title);
-      if (index === -1) {
-        acc.push({
-          name: category.title,
-          value: t.cents,
-          color: getRandomColor(),
-        });
-      } else {
-        acc[index].value += t.cents;
-      }
-      return acc;
-    }, [])
-    .sort((a, b) => b.value - a.value);
-
-  if (donnutData.length > 5) {
-    donnutData = donnutData.slice(0, 5).concat([
-      {
-        name: "Others",
-        value: donnutData.slice(5).reduce((acc, c) => acc + c.value, 0),
-        color: getRandomColor(),
-      },
-    ]);
-  }
-
-  let totalIncome = 0;
-  let totalExpense = 0;
-  transactions.forEach((t) => {
-    if (t.type === "income" && t.category.id !== CATEGORY_TRANSACTION.IN) {
-      totalIncome += t.cents;
-    } else if (
-      t.type === "expense" &&
-      t.category.id !== CATEGORY_TRANSACTION.OUT
-    ) {
-      totalExpense += t.cents;
-    }
-  });
+  const { totalIncome, totalExpense, expenseDonutData, incomeDonutData } =
+    calculateDashboardData(transactions);
 
   return json(
     {
@@ -224,7 +185,8 @@ export async function loader(args: LoaderFunctionArgs) {
       balance: balance + wallets.reduce((acc, w) => acc + w.initialBalance, 0),
       income: totalIncome,
       expense: totalExpense,
-      donnutData,
+      expenseDonutData,
+      incomeDonutData,
     },
     200,
   );
@@ -240,7 +202,8 @@ export default function Index() {
     balance,
     income,
     expense,
-    donnutData,
+    expenseDonutData,
+    incomeDonutData,
   } = useLoaderData<typeof loader>();
   const [opened, { open, close }] = useDisclosure(false);
   const [editTransactionIndex, setEditTransactionIndex] = useState<
@@ -296,19 +259,34 @@ export default function Index() {
         Create Transaction
       </Button>
 
-      <Flex justify="center" direction="column" align="center">
-        <Text size="lg" fw={700}>
-          Expenses
-        </Text>
-        <PieChart
-          data={donnutData}
-          valueFormatter={(v) => formatCurrency(v)}
-          withTooltip
-          withLabelsLine
-          labelsType="percent"
-          withLabels
-        />
-      </Flex>
+      <Group gap="xl" justify="center">
+        <Flex justify="center" direction="column" align="center">
+          <Text size="lg" fw={700}>
+            Expenses
+          </Text>
+          <PieChart
+            data={expenseDonutData}
+            valueFormatter={(v) => formatCurrency(v)}
+            withTooltip
+            withLabelsLine
+            labelsType="percent"
+            withLabels
+          />
+        </Flex>
+        <Flex justify="center" direction="column" align="center">
+          <Text size="lg" fw={700}>
+            Income
+          </Text>
+          <PieChart
+            data={incomeDonutData}
+            valueFormatter={(v) => formatCurrency(v)}
+            withTooltip
+            withLabelsLine
+            labelsType="percent"
+            withLabels
+          />
+        </Flex>
+      </Group>
 
       {transactions.length > 0 ? (
         <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
