@@ -135,3 +135,4 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
 export type SelectTransaction = typeof transactions.$inferSelect;
 export type InsertTransaction = typeof transactions.$inferInsert;
 export type SelectCategory = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
