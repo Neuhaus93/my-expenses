@@ -1,5 +1,6 @@
 import { ColorSchemeToggle } from "../components/color-scheme-toggle";
 import { SignOutButton } from "@clerk/remix";
+import { getAuth } from "@clerk/remix/ssr.server";
 import {
   ActionIcon,
   AppShell,
@@ -15,6 +16,7 @@ import {
   json,
   Link,
   Outlet,
+  redirect,
   useLoaderData,
   useLocation,
   useSearchParams,
@@ -28,6 +30,13 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { z } from "zod";
+import { db } from "~/db/config.server";
+import {
+  categories,
+  users,
+  wallets,
+  type InsertCategory,
+} from "~/db/schema.server";
 
 const data = [
   { link: "/app", label: "Dashboard", icon: IconHome },
@@ -36,6 +45,9 @@ const data = [
 ];
 
 export async function loader(args: LoaderFunctionArgs) {
+  const { userId } = await getAuth(args);
+  if (!userId) return redirect("/sign-in");
+
   const url = new URL(args.request.url);
   const searchParamsObj = Object.fromEntries(url.searchParams);
   const { month, year } = z
@@ -49,6 +61,63 @@ export async function loader(args: LoaderFunctionArgs) {
       year: z.coerce.number().int().catch(new Date().getFullYear()),
     })
     .parse(searchParamsObj);
+
+  // Check if the user exists. Create one otherwise
+  const user = await db.query.users.findFirst({
+    columns: { id: true },
+    where(fields, { eq }) {
+      return eq(fields.id, userId);
+    },
+  });
+  if (!user) {
+    await db.insert(users).values({ id: userId });
+  }
+
+  // Check if the user has categories. Create one otherwise
+  const expenseCategory = await db.query.categories.findFirst({
+    columns: { id: true },
+    where(fields, { and, eq }) {
+      return and(eq(fields.userId, userId), eq(fields.type, "expense"));
+    },
+  });
+  const incomeCategory = await db.query.categories.findFirst({
+    columns: { id: true },
+    where(fields, { and, eq }) {
+      return and(eq(fields.userId, userId), eq(fields.type, "expense"));
+    },
+  });
+  if (!expenseCategory || !incomeCategory) {
+    const values: InsertCategory[] = [];
+    if (!expenseCategory)
+      values.push({
+        title: "House",
+        userId,
+        type: "expense",
+        iconName: "house.png",
+      });
+    if (!incomeCategory)
+      values.push({
+        title: "Salary",
+        userId,
+        type: "income",
+        iconName: "dollar-coin.png",
+      });
+    await db.insert(categories).values(values);
+  }
+
+  // Check if the user has a wallet. Create one otherwise
+  const wallet = await db.query.wallets.findFirst({
+    columns: { id: true },
+    where(fields, { eq }) {
+      return eq(fields.userId, userId);
+    },
+  });
+  if (!wallet) {
+    await db.insert(wallets).values({
+      userId,
+      name: "Bank",
+    });
+  }
 
   return json({ month, year });
 }
