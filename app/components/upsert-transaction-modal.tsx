@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { DateTimePicker, DateValue } from "@mantine/dates";
 import { FetcherWithComponents, useFetcher } from "@remix-run/react";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { CategoriesSelect } from "~/components/categories-select";
@@ -177,6 +177,7 @@ const TransactionForm = ({
       <Stack mt="md" mb="lg" gap="sm">
         {t.tab !== "transference" && (
           <CategoriesSelect
+            key={`categories-select-${t.tab}`}
             label="Category"
             defaultCategoryId={t.category}
             categories={categories.filter((c) => c.type === tab)}
