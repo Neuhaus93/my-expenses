@@ -6,7 +6,7 @@ import {
   Text,
   useCombobox,
 } from "@mantine/core";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { z } from "zod";
 import { type NestedCategories } from "~/lib/category";
 
@@ -45,12 +45,6 @@ export function CategoriesSelect({
   const [selectedCategory, setSelectedCategory] = useState(() =>
     defaultCategoryId ? findCategory(categories, defaultCategoryId) : null,
   );
-
-  useEffect(() => {
-    if (defaultCategoryId) {
-      setSelectedCategory(findCategory(categories, defaultCategoryId));
-    }
-  }, [defaultCategoryId, categories]);
 
   const options = categories
     .filter((item) =>
