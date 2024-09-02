@@ -3,9 +3,10 @@ import {
   Flex,
   Modal,
   NativeSelect,
+  NumberInput,
   SegmentedControl,
   Stack,
-  TextInput,
+  Text,
   Textarea,
 } from "@mantine/core";
 import { DateTimePicker, DateValue } from "@mantine/dates";
@@ -222,13 +223,18 @@ const TransactionForm = ({
           onChange={setDate}
           valueFormat="L HH:mm"
         />
-        <TextInput
+        <NumberInput
+          leftSection={
+            <Text component="span" size="sm">
+              R$
+            </Text>
+          }
           label="Value"
-          step={0.01}
-          type="number"
           name="cents"
           defaultValue={t.value}
-          placeholder="R$ 0.00"
+          placeholder="0.00"
+          decimalScale={2}
+          fixedDecimalScale
         />
         <Textarea
           label="Description"
