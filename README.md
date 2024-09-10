@@ -1,4 +1,18 @@
-# Welcome to Remix!
+# Welcome
+
+## Contribute
+
+- Fork the repository
+- Make sure you have up to date **Docker** and **pnpm**
+- Set up your local
+  - The easiest way is to run the start script, with `sh ./dev-start.sh`
+  - This will create an `.env` file, and start a `postgresql` container
+  - You will need valid `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` variables. You can get that by creating a free Clerk account and creating a project
+  - [To be GREATLY improved] Create an account in Clerk, and add the account `userId` to the `user` table
+  - Run the app with `pnpm dev`
+- Create a branch and feel free to open a Pull Request with your contribution. Thanks in advance!
+
+## This Project uses Remix
 
 - 📖 [Remix docs](https://remix.run/docs)
 
