@@ -10,7 +10,11 @@ import {
   Textarea,
 } from "@mantine/core";
 import { DateTimePicker, DateValue } from "@mantine/dates";
-import { FetcherWithComponents, useFetcher } from "@remix-run/react";
+import {
+  FetcherWithComponents,
+  useFetcher,
+  useSearchParams,
+} from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
@@ -116,13 +120,33 @@ const TransactionForm = ({
   tab: TransactionType;
   fetcher: FetcherWithComponents<unknown>;
 }) => {
+  const [searchParams] = useSearchParams();
+  const defaultWallet = z.coerce
+    .number()
+    .int()
+    .catch(wallets[0].id)
+    .parse(searchParams.get("wallet"));
+  const defaultCategory = z.coerce
+    .number()
+    .int()
+    .nullable()
+    .transform((v) => {
+      if (
+        v &&
+        categories.findIndex((c) => c.id === v && c.type === tab) !== -1
+      ) {
+        return v;
+      }
+      return categories.find((c) => c.type === tab)?.id ?? -1;
+    })
+    .parse(searchParams.get("category"));
   const loading = fetcher.state !== "idle";
   const t = (() => {
     const emptyTransaction = {
       tab,
       id: "new",
-      category: { id: categories.find((c) => c.type === tab)?.id ?? -1 },
-      wallet: { id: wallets[0].id },
+      category: { id: defaultCategory },
+      wallet: { id: defaultWallet },
       timestamp: Date.now(),
       cents: undefined,
       description: "",

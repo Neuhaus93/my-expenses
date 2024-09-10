@@ -6,7 +6,7 @@ import {
   Text,
   useCombobox,
 } from "@mantine/core";
-import { Fragment, useState } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import { type NestedCategories } from "~/lib/category";
 
@@ -42,27 +42,22 @@ export function CategoriesSelect({
       combobox.focusSearchInput();
     },
   });
-  const [selectedCategory, setSelectedCategory] = useState(() =>
-    defaultCategoryId ? findCategory(categories, defaultCategoryId) : null,
+  const flatCategories = useMemo(
+    () => getFlatCategories(categories, hideChildren),
+    [categories, hideChildren],
+  );
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => flatCategories.find((c) => c.id === defaultCategoryId) ?? null,
   );
 
-  const options = categories
+  const options = flatCategories
     .filter((item) =>
       item.title.toLowerCase().includes(search.toLowerCase().trim()),
     )
     .map((item) => (
-      <Fragment key={item.id}>
-        <Combobox.Option value={String(item.id)}>
-          <SelectOption category={item} />
-        </Combobox.Option>
-        {hideChildren
-          ? null
-          : item.children?.map((child) => (
-              <Combobox.Option value={String(child.id)} key={child.id}>
-                <SelectOption category={child} />
-              </Combobox.Option>
-            ))}
-      </Fragment>
+      <Combobox.Option key={item.id} value={String(item.id)}>
+        <SelectOption category={item} />
+      </Combobox.Option>
     ));
 
   return (
@@ -138,6 +133,16 @@ const SelectOption = ({
     <Text component="span">{c.title}</Text>
   </Group>
 );
+
+function getFlatCategories(categories: NestedCategories, hideChildren = false) {
+  return categories.reduce<SelectedCategory[]>((acc, cur) => {
+    acc.push(cur);
+    if (cur.children && !hideChildren) {
+      acc.push(...cur.children);
+    }
+    return acc;
+  }, []);
+}
 
 function findCategory(categories: NestedCategories, categoryId: number) {
   const flatCategories = categories.reduce<SelectedCategory[]>((acc, cur) => {
