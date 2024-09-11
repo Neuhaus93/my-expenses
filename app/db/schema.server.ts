@@ -11,7 +11,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("user", {
-  id: text("id").primaryKey(),
+  id: serial("id").primaryKey(),
+  discordId: text("discord_id"),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -22,7 +23,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const wallets = pgTable("wallet", {
   id: serial("id").primaryKey(),
-  userId: text("user_id")
+  userId: integer("user_id")
     .references(() => users.id)
     .notNull(),
   name: varchar("name", { length: 256 }).notNull(),
@@ -42,7 +43,7 @@ export const transactions = pgTable("transaction", {
   cents: integer("cents").notNull(),
   type: text("type", { enum: ["income", "expense"] }).notNull(),
   description: text("description"),
-  userId: text("user_id")
+  userId: integer("user_id")
     .references(() => users.id)
     .notNull(),
   categoryId: integer("category_id")
@@ -111,7 +112,7 @@ export const categories = pgTable(
     id: serial("id").primaryKey(),
     title: varchar("title", { length: 256 }).notNull(),
     type: text("type", { enum: ["income", "expense"] }).notNull(),
-    userId: text("user_id").references(() => users.id),
+    userId: integer("user_id").references(() => users.id),
     parentId: integer("parent_id"),
     iconName: varchar("icon_name", { length: 255 }).notNull(),
   },

@@ -19,7 +19,7 @@ export const CATEGORY_TRANSACTION = {
 };
 
 export async function getNestedCategories(
-  userId: string,
+  userId: number,
   type: "income" | "expense" | null = null,
 ) {
   const categories = await db
