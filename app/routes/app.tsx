@@ -1,6 +1,5 @@
 import { ColorSchemeToggle } from "../components/color-scheme-toggle";
 import { SignOutButton } from "@clerk/remix";
-import { getAuth } from "@clerk/remix/ssr.server";
 import {
   ActionIcon,
   AppShell,
@@ -16,7 +15,6 @@ import {
   json,
   Link,
   Outlet,
-  redirect,
   useLoaderData,
   useLocation,
   useSearchParams,
@@ -37,6 +35,7 @@ import {
   wallets,
   type InsertCategory,
 } from "~/db/schema.server";
+import { auth } from "~/services/auth.server";
 
 const data = [
   { link: "/app", label: "Dashboard", icon: IconHome },
@@ -45,8 +44,9 @@ const data = [
 ];
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) return redirect("/sign-in");
+  const { id: userId } = await auth.isAuthenticated(args.request, {
+    failureRedirect: "/sign-in",
+  });
 
   const url = new URL(args.request.url);
   const searchParamsObj = Object.fromEntries(url.searchParams);

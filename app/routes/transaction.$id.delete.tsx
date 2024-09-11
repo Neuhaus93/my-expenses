@@ -1,15 +1,14 @@
-import { getAuth } from "@clerk/remix/ssr.server";
-import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
-import { and, eq, or, inArray } from "drizzle-orm";
+import { ActionFunctionArgs, json } from "@remix-run/node";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db/config.server";
 import { transactions, transferences } from "~/db/schema.server";
+import { auth } from "~/services/auth.server";
 
 export async function action(args: ActionFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    return redirect("/sign-in");
-  }
+  const { id: userId } = await auth.isAuthenticated(args.request, {
+    failureRedirect: "/sign-in",
+  });
 
   const formData = await args.request.formData();
   const formObj = Object.fromEntries(formData.entries());

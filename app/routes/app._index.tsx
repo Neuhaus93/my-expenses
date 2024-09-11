@@ -1,5 +1,4 @@
 import { TransactionsTable } from "../components/transactions-table";
-import { getAuth } from "@clerk/remix/ssr.server";
 import { PieChart } from "@mantine/charts";
 import { Button, Card, Flex, Group, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -27,12 +26,12 @@ import {
 import { getNestedCategories } from "~/lib/category";
 import { formatCurrency } from "~/lib/currency";
 import { calculateDashboardData } from "~/lib/transacion";
+import { auth } from "~/services/auth.server";
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    return redirect("/sign-in");
-  }
+  const { id: userId } = await auth.isAuthenticated(args.request, {
+    failureRedirect: "/sign-in",
+  });
 
   const url = new URL(args.request.url);
   const searchParamsObj = Object.fromEntries(url.searchParams);

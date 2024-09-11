@@ -1,4 +1,3 @@
-import { getAuth } from "@clerk/remix/ssr.server";
 import {
   ActionIcon,
   Avatar,
@@ -14,19 +13,19 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import { IconTrash } from "@tabler/icons-react";
 import { FormEvent, useEffect } from "react";
 import { z } from "zod";
 import { CreateCategoryModal } from "~/components/create-category-modal";
 import { getNestedCategories } from "~/lib/category";
+import { auth } from "~/services/auth.server";
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    return redirect("/sign-in");
-  }
+  const { id: userId } = await auth.isAuthenticated(args.request, {
+    failureRedirect: "/sign-in",
+  });
 
   const url = new URL(args.request.url);
   const type = z

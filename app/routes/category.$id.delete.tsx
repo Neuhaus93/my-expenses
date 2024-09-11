@@ -1,16 +1,15 @@
-import { getAuth } from "@clerk/remix/ssr.server";
-import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
-import { and, inArray, eq, or, sql } from "drizzle-orm";
+import { ActionFunctionArgs, json } from "@remix-run/node";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "~/db/config.server";
 import { categories, transactions } from "~/db/schema.server";
+import { auth } from "~/services/auth.server";
 
 export async function action(args: ActionFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    return redirect("/sign-in");
-  }
+  const { id: userId } = await auth.isAuthenticated(args.request, {
+    failureRedirect: "/sign-in",
+  });
 
   const formData = await args.request.formData();
   const formObj = Object.fromEntries(formData.entries());
@@ -35,7 +34,9 @@ export async function action(args: ActionFunctionArgs) {
     return json({ ok: false, message: "Category not found" }, { status: 400 });
   }
 
-  const childCategoryIds = category.childCategoryIds.filter((i) => i !== null);
+  const childCategoryIds = category.childCategoryIds.filter(
+    (i) => i !== null,
+  ) as number[];
   // Should not be able to delete a category with transactions
   const [categoryTransaction] = await db
     .select({ id: transactions.id })

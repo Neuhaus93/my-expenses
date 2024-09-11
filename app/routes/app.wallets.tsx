@@ -1,17 +1,16 @@
-import { getAuth } from "@clerk/remix/ssr.server";
 import { Card, Grid, Stack, Text, Title } from "@mantine/core";
-import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { eq, sql } from "drizzle-orm";
 import { db } from "~/db/config.server";
-import { transactions, wallets as tableWallets } from "~/db/schema.server";
+import { wallets as tableWallets, transactions } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
+import { auth } from "~/services/auth.server";
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    return redirect("/sign-in");
-  }
+  const { id: userId } = await auth.isAuthenticated(args.request, {
+    failureRedirect: "/sign-in",
+  });
 
   const wallets = await db
     .select({
