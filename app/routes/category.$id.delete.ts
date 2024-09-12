@@ -55,7 +55,10 @@ export async function action(args: ActionFunctionArgs) {
     .limit(1);
   if (categoryTransaction) {
     return json(
-      { ok: false, message: "Category has transactions, cannot be deleted" },
+      {
+        ok: false,
+        message: "Category has one or more transactions, cannot be deleted",
+      },
       { status: 400 },
     );
   }

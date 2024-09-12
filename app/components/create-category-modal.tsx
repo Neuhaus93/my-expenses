@@ -149,6 +149,7 @@ export const CreateCategoryModal = ({
                 type="text"
                 id="title"
                 name="title"
+                autoComplete="off"
                 minLength={1}
                 maxLength={255}
                 required
@@ -182,7 +183,7 @@ export const CreateCategoryModal = ({
           </Stack>
 
           <Button type="submit" disabled={loading} ml="auto" mt="lg">
-            Create Category
+            Create
           </Button>
         </fetcher.Form>
       </Modal>
