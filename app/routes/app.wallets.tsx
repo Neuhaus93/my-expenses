@@ -72,7 +72,7 @@ const WalletItem = ({
   wallet: WalletsLoaderData["wallets"][number];
 }) => {
   return (
-    <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
+    <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
       <Card withBorder shadow="sm" radius="md" style={{ width: "100%" }}>
         <Group>
           <Stack flex={1} gap="sm">
