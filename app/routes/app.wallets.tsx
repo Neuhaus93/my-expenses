@@ -1,7 +1,22 @@
-import { Card, Grid, Stack, Text, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Box,
+  Card,
+  Container,
+  Grid,
+  Group,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { IconTrash } from "@tabler/icons-react";
 import { eq, sql } from "drizzle-orm";
+import { useEffect, FormEvent } from "react";
+import { z } from "zod";
+import { CreateWalletModal } from "~/components/create-wallet-modal";
 import { db } from "~/db/config.server";
 import { wallets as tableWallets, transactions } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
@@ -27,28 +42,99 @@ export async function loader(args: LoaderFunctionArgs) {
 
   return { wallets };
 }
+export type WalletsLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function WalletsPage() {
   const { wallets } = useLoaderData<typeof loader>();
 
   return (
-    <div>
-      <Title order={2} mb="lg">
+    <Container>
+      <Title order={2} mb="lg" ta="center">
         Wallets
       </Title>
 
-      <Grid>
+      <Group mt="lg">
+        <CreateWalletModal />
+      </Group>
+
+      <Grid mt="lg">
         {wallets.map((wallet) => (
-          <Grid.Col key={wallet.id} span={{ base: 12, md: 6, lg: 3 }}>
-            <Card mb={16} shadow="xs" radius="md">
-              <Stack gap="sm">
-                <Text size="sm">{wallet.name}</Text>
-                <Text fw={500}>{formatCurrency(wallet.balance)}</Text>
-              </Stack>
-            </Card>
-          </Grid.Col>
+          <WalletItem key={wallet.id} wallet={wallet} />
         ))}
       </Grid>
-    </div>
+    </Container>
   );
 }
+
+const WalletItem = ({
+  wallet,
+}: {
+  wallet: WalletsLoaderData["wallets"][number];
+}) => {
+  return (
+    <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
+      <Card withBorder shadow="sm" radius="md" style={{ width: "100%" }}>
+        <Group>
+          <Stack flex={1} gap="sm">
+            <Text size="sm">{wallet.name}</Text>
+            <Text fw={500}>{formatCurrency(wallet.balance)}</Text>
+          </Stack>
+          <DeleteButton id={wallet.id} />
+        </Group>
+      </Card>
+    </Grid.Col>
+  );
+};
+
+const DeleteButton = ({ id }: { id: number }) => {
+  const fetcher = useFetcher();
+  const loading = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    const data = z
+      .discriminatedUnion("ok", [
+        z.object({ ok: z.literal(false), message: z.string() }),
+        z.object({ ok: z.literal(true) }),
+      ])
+      .catch({ ok: false, message: "Something went wrong, please try again" })
+      .parse(fetcher.data);
+
+    notifications.show({
+      title: data.ok ? "Wallet deleted" : "Error deleting the wallet",
+      message: data.ok ? undefined : data.message,
+      position: "top-right",
+      color: data.ok ? "green" : "red",
+    });
+  }, [fetcher.data]);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (confirm("Are you sure you want to delete this wallet?")) {
+      fetcher.submit(event.currentTarget, {
+        action: `/wallet/${id}/delete`,
+        method: "POST",
+      });
+    }
+  };
+
+  return (
+    <Box mr="xs">
+      <fetcher.Form method="post" onSubmit={handleSubmit}>
+        <input hidden name="id" defaultValue={id} />
+        <ActionIcon
+          variant="subtle"
+          size="lg"
+          radius="xl"
+          color="dark"
+          disabled={loading}
+          type="submit"
+        >
+          <IconTrash size="1.4rem" />
+        </ActionIcon>
+      </fetcher.Form>
+    </Box>
+  );
+};

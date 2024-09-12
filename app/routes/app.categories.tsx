@@ -143,21 +143,20 @@ const DeleteButton = ({ id }: { id: number }) => {
   useEffect(() => {
     if (!fetcher.data) return;
 
-    const dataSafeParse = z
+    const data = z
       .discriminatedUnion("ok", [
         z.object({ ok: z.literal(false), message: z.string() }),
         z.object({ ok: z.literal(true) }),
       ])
-      .safeParse(fetcher.data);
+      .catch({ ok: false, message: "Something went wrong, please try again" })
+      .parse(fetcher.data);
 
-    if (dataSafeParse.success && !dataSafeParse.data.ok) {
-      notifications.show({
-        title: "Error deleting the category",
-        message: dataSafeParse.data.message,
-        position: "top-right",
-        color: "red",
-      });
-    }
+    notifications.show({
+      title: data.ok ? "Category deleted" : "Error deleting the category",
+      message: data.ok ? undefined : data.message,
+      position: "top-right",
+      color: data.ok ? "green" : "red",
+    });
   }, [fetcher.data]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

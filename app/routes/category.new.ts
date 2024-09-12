@@ -14,7 +14,7 @@ export async function action(args: ActionFunctionArgs) {
   const formObj = Object.fromEntries(formData.entries());
   const formSchema = z.object({
     type: z.enum(["income", "expense"]),
-    title: z.string(),
+    title: z.string().min(1).max(255),
     iconName: z.enum(CATEGORY_ICON_LIST),
     isParent: z
       .literal("on")
