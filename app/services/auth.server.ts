@@ -21,7 +21,6 @@ const discordStrategy = new DiscordStrategy(
     scope: ["identify"],
   },
   async ({ accessToken, refreshToken, profile }): Promise<DiscordUser> => {
-    console.log(JSON.stringify(profile));
     let user = await db.query.users.findFirst({
       columns: { id: true },
       where(fields, { eq }) {
