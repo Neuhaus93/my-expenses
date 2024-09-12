@@ -1,5 +1,4 @@
 import { ColorSchemeToggle } from "../components/color-scheme-toggle";
-import { SignOutButton } from "@clerk/remix";
 import {
   ActionIcon,
   AppShell,
@@ -12,6 +11,7 @@ import { MonthPickerInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import {
+  Form,
   json,
   Link,
   Outlet,
@@ -174,13 +174,14 @@ export default function SidebarLayout() {
           ))}
         </AppShell.Section>
         <AppShell.Section>
-          <SignOutButton>
+          <Form method="post" action="/sign-out">
             <NavLink
               component={"button"}
               leftSection={<IconLogout size="1rem" stroke={1.5} />}
               label="Logout"
+              type="submit"
             />
-          </SignOutButton>
+          </Form>
         </AppShell.Section>
       </AppShell.Navbar>
 

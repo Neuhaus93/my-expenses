@@ -1,17 +1,11 @@
 import appStylesHref from "./globals.css?url";
-import { ClerkApp } from "@clerk/remix";
-import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import "@mantine/charts/styles.css";
 import { ColorSchemeScript, createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import { Notifications } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
-import type {
-  LinksFunction,
-  LoaderFunction,
-  MetaFunction,
-} from "@remix-run/node";
+import type { LinksFunction, MetaFunction } from "@remix-run/node";
 import {
   Links,
   Meta,
@@ -35,8 +29,6 @@ export const meta: MetaFunction = () => [
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: appStylesHref },
 ];
-
-export const loader: LoaderFunction = (args) => rootAuthLoader(args);
 
 const theme = createTheme({});
 
@@ -66,4 +58,4 @@ function App() {
   return <Outlet />;
 }
 
-export default ClerkApp(App);
+export default App;
