@@ -115,6 +115,7 @@ export const categories = pgTable(
     userId: integer("user_id").references(() => users.id),
     parentId: integer("parent_id"),
     iconName: varchar("icon_name", { length: 255 }).notNull(),
+    unique: text("unique", { enum: ["transaction_in", "transaction_out"] }),
   },
   (table) => ({
     parentReference: foreignKey({

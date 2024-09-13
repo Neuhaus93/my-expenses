@@ -5,17 +5,16 @@ import {
   SelectCategory,
 } from "~/db/schema.server";
 
-type Category = Omit<SelectCategory, "userId">;
+type Category = Omit<SelectCategory, "userId" | "unique">;
 export type NestedCategories = Array<
   Category & {
     children: Category[];
   }
 >;
 
-// TODO: Don't make this hard-coded
-export const CATEGORY_TRANSACTION = {
-  IN: 49,
-  OUT: 50,
+export const CATEGORY_SPECIAL = {
+  TRANSACTION_IN: "transaction_in",
+  TRANSACTION_OUT: "transaction_out",
 };
 
 export async function getNestedCategories(

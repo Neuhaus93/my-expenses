@@ -1,9 +1,9 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { eq, or } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db/config.server";
-import { transactions, transferences } from "~/db/schema.server";
-import { CATEGORY_TRANSACTION } from "~/lib/category";
+import { categories, transactions, transferences } from "~/db/schema.server";
+import { CATEGORY_SPECIAL } from "~/lib/category";
 import { auth } from "~/services/auth.server";
 
 export async function action(args: ActionFunctionArgs) {
@@ -52,6 +52,22 @@ export async function action(args: ActionFunctionArgs) {
 
   if (id === "new") {
     if (formValues.type === "transference") {
+      const specialCategories = await db
+        .select({
+          id: categories.id,
+          unique: categories.unique,
+        })
+        .from(categories)
+        .where(
+          and(eq(categories.userId, userId), isNotNull(categories.unique)),
+        );
+      const categoryTransactionIn = specialCategories.find(
+        (c) => c.unique === CATEGORY_SPECIAL.TRANSACTION_IN,
+      )!.id;
+      const categoryTransactionOut = specialCategories.find(
+        (c) => c.unique === CATEGORY_SPECIAL.TRANSACTION_OUT,
+      )!.id;
+
       // Create in and out transactions
       const [{ id: transactionOutId }, { id: transactionInId }] = await db
         .insert(transactions)
@@ -60,7 +76,7 @@ export async function action(args: ActionFunctionArgs) {
             type: "expense",
             timestamp,
             userId,
-            categoryId: CATEGORY_TRANSACTION.OUT,
+            categoryId: categoryTransactionOut,
             walletId: walletId,
             isTransference: true,
             cents: -cents,
@@ -70,7 +86,7 @@ export async function action(args: ActionFunctionArgs) {
             type: "income",
             timestamp,
             userId,
-            categoryId: CATEGORY_TRANSACTION.IN,
+            categoryId: categoryTransactionIn,
             walletId: formValues.toWallet,
             isTransference: true,
             cents,

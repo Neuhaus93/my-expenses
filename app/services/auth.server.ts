@@ -1,7 +1,7 @@
 import { Authenticator } from "remix-auth";
 import { DiscordStrategy } from "remix-auth-discord";
 import { db } from "~/db/config.server";
-import { users } from "~/db/schema.server";
+import { categories, users } from "~/db/schema.server";
 import { env } from "~/env.server";
 import { sessionStorage, type SessionData } from "~/services/session.server";
 
@@ -35,6 +35,24 @@ const discordStrategy = new DiscordStrategy(
           discordId: profile.id,
         })
         .returning({ id: users.id });
+
+      // Create special categories for user
+      await db.insert(categories).values([
+        {
+          title: "_TRANSACTION-IN",
+          type: "income",
+          userId: user.id,
+          unique: "transaction_in",
+          iconName: "bill.png",
+        },
+        {
+          title: "_TRANSACTION-OUT",
+          type: "expense",
+          userId: user.id,
+          unique: "transaction_out",
+          iconName: "bill.png",
+        },
+      ]);
     }
 
     /**
