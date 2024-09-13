@@ -16,6 +16,7 @@ export const columns = [
     cell: (info) => dayjs(info.getValue()).format("L HH:mm"),
   }),
   columnHelper.accessor("description", {
+    header: "Description",
     cell: (info) => info.getValue(),
   }),
   columnHelper.accessor("category.title", {
