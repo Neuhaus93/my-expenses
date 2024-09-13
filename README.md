@@ -7,7 +7,7 @@
 - Set up your local
   - The easiest way is to run the start script, with `sh ./dev-start.sh`
   - This will create an `.env` file, and start a `postgresql` container
-  - Run the app with `pnpm dev`, and login as the Clerk user you created above
+  - Run the app with `pnpm dev`, and enter any email to login. A new user will be created if the email does not exist
 - Create a branch and feel free to open a Pull Request with your contribution. Thanks in advance!
 
 ## This Project uses Remix
