@@ -1,5 +1,6 @@
-import { relations } from "drizzle-orm";
+import { SQL, relations, sql } from "drizzle-orm";
 import {
+  AnyPgColumn,
   boolean,
   foreignKey,
   integer,
@@ -7,13 +8,25 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const users = pgTable("user", {
-  id: serial("id").primaryKey(),
-  discordId: text("discord_id"),
-});
+// custom lower function
+export function lower(email: AnyPgColumn): SQL {
+  return sql`lower(${email})`;
+}
+
+export const users = pgTable(
+  "user",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").unique().notNull(),
+  },
+  (table) => ({
+    emailUniqueIndex: uniqueIndex("emailUniqueIndex").on(lower(table.email)),
+  }),
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
   transactions: many(transactions),

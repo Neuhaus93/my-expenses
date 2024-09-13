@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "~/db/config.server";
 import {
   categories as categoriesTable,
@@ -33,6 +33,7 @@ export async function getNestedCategories(
     .where(
       and(
         eq(categoriesTable.userId, userId),
+        isNull(categoriesTable.unique),
         type ? eq(categoriesTable.type, type) : undefined,
       ),
     )

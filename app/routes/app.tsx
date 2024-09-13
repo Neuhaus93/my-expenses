@@ -28,13 +28,6 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { z } from "zod";
-import { db } from "~/db/config.server";
-import {
-  categories,
-  users,
-  wallets,
-  type InsertCategory,
-} from "~/db/schema.server";
 import { auth } from "~/services/auth.server";
 
 const data = [
@@ -44,7 +37,7 @@ const data = [
 ];
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { id: userId } = await auth.isAuthenticated(args.request, {
+  await auth.isAuthenticated(args.request, {
     failureRedirect: "/sign-in",
   });
 
@@ -61,63 +54,6 @@ export async function loader(args: LoaderFunctionArgs) {
       year: z.coerce.number().int().catch(new Date().getFullYear()),
     })
     .parse(searchParamsObj);
-
-  // Check if the user exists. Create one otherwise
-  const user = await db.query.users.findFirst({
-    columns: { id: true },
-    where(fields, { eq }) {
-      return eq(fields.id, userId);
-    },
-  });
-  if (!user) {
-    await db.insert(users).values({ id: userId });
-  }
-
-  // Check if the user has categories. Create one otherwise
-  const expenseCategory = await db.query.categories.findFirst({
-    columns: { id: true },
-    where(fields, { and, eq }) {
-      return and(eq(fields.userId, userId), eq(fields.type, "expense"));
-    },
-  });
-  const incomeCategory = await db.query.categories.findFirst({
-    columns: { id: true },
-    where(fields, { and, eq }) {
-      return and(eq(fields.userId, userId), eq(fields.type, "expense"));
-    },
-  });
-  if (!expenseCategory || !incomeCategory) {
-    const values: InsertCategory[] = [];
-    if (!expenseCategory)
-      values.push({
-        title: "House",
-        userId,
-        type: "expense",
-        iconName: "house.png",
-      });
-    if (!incomeCategory)
-      values.push({
-        title: "Salary",
-        userId,
-        type: "income",
-        iconName: "dollar-coin.png",
-      });
-    await db.insert(categories).values(values);
-  }
-
-  // Check if the user has a wallet. Create one otherwise
-  const wallet = await db.query.wallets.findFirst({
-    columns: { id: true },
-    where(fields, { eq }) {
-      return eq(fields.userId, userId);
-    },
-  });
-  if (!wallet) {
-    await db.insert(wallets).values({
-      userId,
-      name: "Bank",
-    });
-  }
 
   return json({ month, year });
 }
