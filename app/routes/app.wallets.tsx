@@ -3,6 +3,7 @@ import {
   Box,
   Card,
   Container,
+  Flex,
   Grid,
   Group,
   Stack,
@@ -12,11 +13,11 @@ import {
 import { notifications } from "@mantine/notifications";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { IconTrash } from "@tabler/icons-react";
+import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { eq, sql } from "drizzle-orm";
-import { useEffect, FormEvent } from "react";
+import { useEffect, FormEvent, useState } from "react";
 import { z } from "zod";
-import { CreateWalletModal } from "~/components/create-wallet-modal";
+import { UpsertWalletModal } from "~/components/upsert-wallet-modal";
 import { db } from "~/db/config.server";
 import { wallets as tableWallets, transactions } from "~/db/schema.server";
 import { formatCurrency } from "~/lib/currency";
@@ -46,6 +47,13 @@ export type WalletsLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function WalletsPage() {
   const { wallets } = useLoaderData<typeof loader>();
+  const [walletToUpdate, setWalletToUpdate] = useState<
+    WalletsLoaderData["wallets"][number] | null
+  >(null);
+
+  const handleUpdateClick = (wallet: WalletsLoaderData["wallets"][number]) => {
+    setWalletToUpdate(wallet);
+  };
 
   return (
     <Container>
@@ -54,12 +62,16 @@ export default function WalletsPage() {
       </Title>
 
       <Group mt="lg">
-        <CreateWalletModal />
+        <UpsertWalletModal wallet={walletToUpdate} />
       </Group>
 
       <Grid mt="lg">
         {wallets.map((wallet) => (
-          <WalletItem key={wallet.id} wallet={wallet} />
+          <WalletItem
+            key={wallet.id}
+            wallet={wallet}
+            onUpdate={handleUpdateClick}
+          />
         ))}
       </Grid>
     </Container>
@@ -68,19 +80,30 @@ export default function WalletsPage() {
 
 const WalletItem = ({
   wallet,
+  onUpdate,
 }: {
   wallet: WalletsLoaderData["wallets"][number];
+  onUpdate: (wallet: WalletsLoaderData["wallets"][number]) => void;
 }) => {
   return (
     <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
       <Card withBorder shadow="sm" radius="md" style={{ width: "100%" }}>
-        <Group>
+        <Flex align="center">
           <Stack flex={1} gap="sm">
             <Text size="sm">{wallet.name}</Text>
             <Text fw={500}>{formatCurrency(wallet.balance)}</Text>
           </Stack>
+          <ActionIcon
+            variant="subtle"
+            size="lg"
+            radius="xl"
+            color="dark"
+            onClick={() => onUpdate(wallet)}
+          >
+            <IconPencil size="1.2rem" />
+          </ActionIcon>
           <DeleteButton id={wallet.id} />
-        </Group>
+        </Flex>
       </Card>
     </Grid.Col>
   );
@@ -121,7 +144,7 @@ const DeleteButton = ({ id }: { id: number }) => {
   };
 
   return (
-    <Box mr="xs">
+    <Box>
       <fetcher.Form method="post" onSubmit={handleSubmit}>
         <input hidden name="id" defaultValue={id} />
         <ActionIcon
@@ -132,7 +155,7 @@ const DeleteButton = ({ id }: { id: number }) => {
           disabled={loading}
           type="submit"
         >
-          <IconTrash size="1.4rem" />
+          <IconTrash size="1.2rem" />
         </ActionIcon>
       </fetcher.Form>
     </Box>
