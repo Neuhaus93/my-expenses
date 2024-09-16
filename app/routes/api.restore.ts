@@ -8,13 +8,10 @@ import {
   wallets,
 } from "~/db/schema.server";
 import data from "~/expenses-2024-09-13_00_28.json";
-import { auth } from "~/services/auth.server";
 
 export const loader = async (args: LoaderFunctionArgs) => {
   const originalUserId = "user_2i7ipp18qElWdqGJFl9z5oZyL04";
-  const { id: userId } = await auth.isAuthenticated(args.request, {
-    failureRedirect: "/sign-in",
-  });
+  const userId = 56;
 
   const mapTransaction = (t: (typeof data)["transactions"][number]) => {
     return {
