@@ -13,8 +13,8 @@ export type NestedCategories = Array<
 >;
 
 export const CATEGORY_SPECIAL = {
-  TRANSACTION_IN: "transaction_in",
-  TRANSACTION_OUT: "transaction_out",
+  TRANSFERENCE_IN: "transference_in",
+  TRANSFERENCE_OUT: "transference_out",
 };
 
 export async function getNestedCategories(
