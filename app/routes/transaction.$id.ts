@@ -62,10 +62,10 @@ export async function action(args: ActionFunctionArgs) {
           and(eq(categories.userId, userId), isNotNull(categories.unique)),
         );
       const categoryTransactionIn = specialCategories.find(
-        (c) => c.unique === CATEGORY_SPECIAL.TRANSACTION_IN,
+        (c) => c.unique === CATEGORY_SPECIAL.TRANSFERENCE_IN,
       )!.id;
       const categoryTransactionOut = specialCategories.find(
-        (c) => c.unique === CATEGORY_SPECIAL.TRANSACTION_OUT,
+        (c) => c.unique === CATEGORY_SPECIAL.TRANSFERENCE_OUT,
       )!.id;
 
       // Create in and out transactions
