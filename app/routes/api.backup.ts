@@ -1,16 +1,9 @@
-import { getAuth } from "@clerk/remix/ssr.server";
-import { LoaderFunctionArgs } from "@remix-run/node";
 import dayjs from "dayjs";
 import { PgTable } from "drizzle-orm/pg-core";
 import { db } from "~/db/config.server";
 import * as schema from "~/db/schema.server";
 
-export async function loader(args: LoaderFunctionArgs) {
-  const { userId } = await getAuth(args);
-  if (!userId) {
-    throw new Error("Not logged in");
-  }
-
+export async function loader() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res: any = {};
   for (const [key, value] of Object.entries(schema)) {
