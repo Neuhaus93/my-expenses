@@ -1,5 +1,5 @@
 import { TransactionsTable } from "../components/transactions-table";
-import { PieChart } from "@mantine/charts";
+import { AreaChart, PieChart } from "@mantine/charts";
 import { Button, Card, Flex, Group, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -172,8 +172,13 @@ export async function loader(args: LoaderFunctionArgs) {
     .catch([{ balance: 0 }])
     .parse(balanceResult);
 
-  const { totalIncome, totalExpense, expenseDonutData, incomeDonutData } =
-    calculateDashboardData(transactions);
+  const {
+    totalIncome,
+    totalExpense,
+    expenseDonutData,
+    incomeDonutData,
+    areaChartData,
+  } = calculateDashboardData(transactions);
 
   return json(
     {
@@ -186,6 +191,7 @@ export async function loader(args: LoaderFunctionArgs) {
       expense: totalExpense,
       expenseDonutData,
       incomeDonutData,
+      areaChartData,
     },
     200,
   );
@@ -203,6 +209,7 @@ export default function Index() {
     expense,
     expenseDonutData,
     incomeDonutData,
+    areaChartData,
   } = useLoaderData<typeof loader>();
   const [opened, { open, close }] = useDisclosure(false);
   const [editTransactionIndex, setEditTransactionIndex] = useState<
@@ -286,9 +293,22 @@ export default function Index() {
           />
         </Flex>
       </Group>
+      <Stack mt="lg" justify="center" align="center" ml={40} mr={8}>
+        <AreaChart
+          h={260}
+          data={areaChartData}
+          valueFormatter={(v) => formatCurrency(v)}
+          dataKey="date"
+          series={[
+            { name: "Expense", color: "red.6" },
+            { name: "Income", color: "green.6" },
+          ]}
+          curveType="monotone"
+        />
+      </Stack>
 
       {transactions.length > 0 ? (
-        <div className="relative mt-3 overflow-x-auto shadow-md sm:rounded-lg">
+        <div className="relative mt-6 overflow-x-auto shadow-md sm:rounded-lg">
           <TransactionsTable
             open={open}
             transactions={transactions}

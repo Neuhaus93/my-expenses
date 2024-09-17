@@ -28,7 +28,7 @@
     "pg": "^8.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts": "2",
+    "recharts": "2.13.0-alpha.5",
     "remix-auth": "^3.7.0",
     "remix-auth-form": "^1.5.0",
     "tailwind-merge": "^2.3.0",
