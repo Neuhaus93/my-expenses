@@ -21,8 +21,10 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import type { SelectCategory } from "~/db/schema.server";
 import { CATEGORY_ICON_LIST } from "~/lib/categories";
+import { CategoriesLoaderData } from "~/routes/app.categories";
 
-type CreateCategoryModalProps = {
+type UpsertCategoryModalProps = {
+  category: CategoriesLoaderData["nestedCategories"][number] | null;
   type: "income" | "expense";
   parentCategories: Pick<SelectCategory, "id" | "title">[];
 };
@@ -32,10 +34,11 @@ function getRandomIcon() {
   return CATEGORY_ICON_LIST[randomIndex];
 }
 
-export const CreateCategoryModal = ({
+export const UpsertCategoryModal = ({
+  category,
   type,
   parentCategories,
-}: CreateCategoryModalProps) => {
+}: UpsertCategoryModalProps) => {
   const [opened, { open, close }] = useDisclosure(false);
   const [
     iconsPopoverOpen,
@@ -43,16 +46,24 @@ export const CreateCategoryModal = ({
   ] = useDisclosure(false);
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
+  const [isNew, setIsNew] = useState(true);
   const [isParent, setIsParent] = useState(true);
-  const [iconName, setIconName] = useState(getRandomIcon);
+  const [iconName, setIconName] = useState<string>(getRandomIcon);
+  const isUpdate = !!category && !isNew;
+
+  useEffect(() => {
+    if (category) {
+      setIconName(category.iconName);
+      setIsNew(false);
+      open();
+    } else {
+      setIconName(getRandomIcon);
+    }
+  }, [category, open]);
 
   useEffect(() => {
     if (!opened && iconsPopoverOpen) closeIconsPopover();
   }, [closeIconsPopover, iconsPopoverOpen, opened]);
-
-  useEffect(() => {
-    if (opened) setIconName(getRandomIcon);
-  }, [opened]);
 
   useEffect(() => {
     const { ok } = z
@@ -65,13 +76,23 @@ export const CreateCategoryModal = ({
     }
   }, [close, fetcher.data]);
 
+  const handleClickCreate = () => {
+    setIsNew(true);
+    open();
+  };
+
   return (
     <>
-      <Button onClick={open}>Create Category</Button>
-      <Modal opened={opened} onClose={close} centered title="Create Category">
+      <Button onClick={handleClickCreate}>Create Category</Button>
+      <Modal
+        opened={opened}
+        onClose={close}
+        centered
+        title={isUpdate ? "Update Category" : "Create Category"}
+      >
         <fetcher.Form
           method="post"
-          action="/category/new"
+          action={isUpdate ? `/category/${category.id}` : "/category/new"}
           className="flex flex-col"
         >
           <Stack data-mantine-stop-propagation>
@@ -83,6 +104,12 @@ export const CreateCategoryModal = ({
                 { value: "expense", label: "Expense" },
                 { value: "income", label: "Income" },
               ]}
+            />
+            <input
+              name="id"
+              hidden
+              value={isUpdate ? category.id : "new"}
+              readOnly
             />
             <input type="hidden" name="type" value={type} />
             <input type="hidden" name="iconName" value={iconName} />
@@ -154,6 +181,7 @@ export const CreateCategoryModal = ({
                 maxLength={255}
                 required
                 style={{ flex: 1 }}
+                defaultValue={isUpdate ? category.title : ""}
               />
             </Group>
 

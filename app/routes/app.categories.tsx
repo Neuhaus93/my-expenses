@@ -5,6 +5,7 @@ import {
   Card,
   Chip,
   Container,
+  Flex,
   Group,
   SegmentedControl,
   Stack,
@@ -15,10 +16,10 @@ import {
 import { notifications } from "@mantine/notifications";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
-import { IconTrash } from "@tabler/icons-react";
-import { FormEvent, useEffect } from "react";
+import { IconPencil, IconTrash } from "@tabler/icons-react";
+import { FormEvent, useEffect, useState } from "react";
 import { z } from "zod";
-import { CreateCategoryModal } from "~/components/create-category-modal";
+import { UpsertCategoryModal } from "~/components/upsert-category-modal";
 import { getNestedCategories } from "~/lib/category";
 import { auth } from "~/services/auth.server";
 
@@ -43,6 +44,15 @@ export type CategoriesLoaderData = ReturnType<
 export default function CategoriesPage() {
   const { type, nestedCategories } = useLoaderData<typeof loader>();
   const [, setSearchParams] = useSearchParams();
+  const [categoryToUpdate, setCategoryToUpdate] = useState<
+    CategoriesLoaderData["nestedCategories"][number] | null
+  >(null);
+
+  const handleUpdateClick = (
+    category: CategoriesLoaderData["nestedCategories"][number],
+  ) => {
+    setCategoryToUpdate(category);
+  };
 
   return (
     <Container>
@@ -51,7 +61,11 @@ export default function CategoriesPage() {
       </Title>
 
       <Group mt="lg">
-        <CreateCategoryModal type={type} parentCategories={nestedCategories} />
+        <UpsertCategoryModal
+          type={type}
+          parentCategories={nestedCategories}
+          category={categoryToUpdate}
+        />
 
         <SegmentedControl
           size="sm"
@@ -72,7 +86,11 @@ export default function CategoriesPage() {
 
       <Stack mt="lg" gap="sm">
         {nestedCategories.map((category) => (
-          <CategoryItem key={category.id} category={category} />
+          <CategoryItem
+            key={category.id}
+            category={category}
+            onUpdate={handleUpdateClick}
+          />
         ))}
       </Stack>
     </Container>
@@ -81,14 +99,20 @@ export default function CategoriesPage() {
 
 const CategoryItem = ({
   category,
+  onUpdate,
 }: {
   category: CategoriesLoaderData["nestedCategories"][number];
+  onUpdate: (
+    category: CategoriesLoaderData["nestedCategories"][number],
+  ) => void;
 }) => {
-  const colorScheme = useComputedColorScheme();
+  const colorScheme = useComputedColorScheme("dark", {
+    getInitialValueInEffect: true,
+  });
 
   return (
     <Card withBorder shadow="sm" radius="md">
-      <Group>
+      <Flex align="center">
         <Stack flex={1} gap="sm">
           <Group>
             <Avatar>
@@ -130,8 +154,17 @@ const CategoryItem = ({
             ))}
           </Group>
         </Stack>
+        <ActionIcon
+          variant="subtle"
+          size="lg"
+          radius="xl"
+          color="dark"
+          onClick={() => onUpdate(category)}
+        >
+          <IconPencil size="1.2rem" />
+        </ActionIcon>
         <DeleteButton id={category.id} />
-      </Group>
+      </Flex>
     </Card>
   );
 };
