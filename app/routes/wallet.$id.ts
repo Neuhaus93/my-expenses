@@ -12,7 +12,6 @@ export const action = async (args: ActionFunctionArgs) => {
 
   const formData = await args.request.formData();
   const formObj = Object.fromEntries(formData.entries());
-  console.log(formObj);
   const formSchema = z.object({
     id: z.coerce.number().int().or(z.literal("new")),
     name: z.string().min(1).max(255),
