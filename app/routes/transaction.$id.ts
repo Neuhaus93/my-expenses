@@ -27,7 +27,7 @@ export async function action(args: ActionFunctionArgs) {
     .discriminatedUnion("type", [
       baseSchema.extend({
         type: z.enum(["expense", "income"]),
-        category: z.coerce.number().int(),
+        category: z.coerce.number().int().positive(),
       }),
       baseSchema.extend({
         type: z.literal("transference"),
