@@ -226,7 +226,7 @@ export default function Index() {
           { title: "Income", value: formatCurrency(income) },
           { title: "Expense", value: formatCurrency(expense) },
         ].map(({ title, value }) => (
-          <Card key={title} shadow="xs" radius="md" w={200}>
+          <Card key={title} withBorder shadow="xs" radius="md" w={200}>
             <Stack gap="sm">
               <Text size="sm">{title}</Text>
               <Text fw={500}>{value}</Text>
