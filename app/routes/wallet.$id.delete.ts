@@ -17,6 +17,7 @@ export const action = async (args: ActionFunctionArgs) => {
   });
   const { id } = formSchema.parse(formObj);
 
+  // Get the wallet to be deleted. Make sure to check if the `userId` matches
   const [wallet] = await db
     .select()
     .from(wallets)

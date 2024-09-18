@@ -17,6 +17,7 @@ export async function action(args: ActionFunctionArgs) {
   });
   const { id } = formSchema.parse(formObj);
 
+  // Get the transaction to be deleted. Make sure to check if the `userId` matches
   const [transaction] = await db
     .select()
     .from(transactions)

@@ -19,6 +19,8 @@ export async function action(args: ActionFunctionArgs) {
   const { id } = formSchema.parse(formObj);
 
   const childCategories = alias(categories, "childCategories");
+
+  // Get the category to be deleted. Make sure to check if the `userId` matches
   const [category] = await db
     .select({
       id: categories.id,
