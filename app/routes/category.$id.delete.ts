@@ -54,7 +54,6 @@ export async function action(args: ActionFunctionArgs) {
       ),
     )
     .limit(2);
-  console.log(atLeastTwoArray);
   if (atLeastTwoArray.length < 2) {
     return json(
       {
