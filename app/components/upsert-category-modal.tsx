@@ -1,12 +1,9 @@
 import {
   ActionIcon,
-  Box,
   Button,
-  Checkbox,
   Group,
   Input,
   Modal,
-  NativeSelect,
   Popover,
   ScrollArea,
   SegmentedControl,
@@ -17,16 +14,15 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useFetcher } from "@remix-run/react";
+import { IconTrash } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import type { SelectCategory } from "~/db/schema.server";
 import { CATEGORY_ICON_LIST } from "~/lib/categories";
 import { CategoriesLoaderData } from "~/routes/app.categories";
 
 type UpsertCategoryModalProps = {
   category: CategoriesLoaderData["nestedCategories"][number] | null;
   type: "income" | "expense";
-  parentCategories: Pick<SelectCategory, "id" | "title">[];
 };
 
 function getRandomIcon() {
@@ -34,36 +30,48 @@ function getRandomIcon() {
   return CATEGORY_ICON_LIST[randomIndex];
 }
 
+const getEmptyCategory = () => ({
+  id: "new" as number | "new",
+  title: "",
+  icon: getRandomIcon() as string,
+});
+
 export const UpsertCategoryModal = ({
   category,
   type,
-  parentCategories,
 }: UpsertCategoryModalProps) => {
   const [opened, { open, close }] = useDisclosure(false);
-  const [
-    iconsPopoverOpen,
-    { open: openIconsPopover, close: closeIconsPopover },
-  ] = useDisclosure(false);
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
   const [isNew, setIsNew] = useState(true);
-  const [isParent, setIsParent] = useState(true);
-  const [iconName, setIconName] = useState<string>(getRandomIcon);
+  const [categories, setCategories] = useState([getEmptyCategory()]);
+  const [openIconsPopover, setOpenIconsPopover] = useState<number | null>(null);
   const isUpdate = !!category && !isNew;
+
+  const closeIconsPopover = () => {
+    setOpenIconsPopover(null);
+  };
 
   useEffect(() => {
     if (category) {
-      setIconName(category.iconName);
+      setCategories([
+        { id: category.id, title: category.title, icon: category.iconName },
+        ...category.children.map((c) => ({
+          id: c.id,
+          title: c.title,
+          icon: c.iconName,
+        })),
+      ]);
       setIsNew(false);
       open();
     } else {
-      setIconName(getRandomIcon);
+      setCategories([getEmptyCategory()]);
     }
   }, [category, open]);
 
   useEffect(() => {
-    if (!opened && iconsPopoverOpen) closeIconsPopover();
-  }, [closeIconsPopover, iconsPopoverOpen, opened]);
+    if (!opened) setOpenIconsPopover(null);
+  }, [opened]);
 
   useEffect(() => {
     const { ok } = z
@@ -78,6 +86,7 @@ export const UpsertCategoryModal = ({
 
   const handleClickCreate = () => {
     setIsNew(true);
+    setCategories([getEmptyCategory()]);
     open();
   };
 
@@ -106,115 +115,212 @@ export const UpsertCategoryModal = ({
               ]}
             />
             <input
-              name="id"
+              name="category.id"
               hidden
               value={isUpdate ? category.id : "new"}
               readOnly
             />
-            <input type="hidden" name="type" value={type} />
-            <input type="hidden" name="iconName" value={iconName} />
+            <input type="hidden" name="category.type" value={type} />
+            <input
+              type="hidden"
+              name="category.iconName"
+              value={categories[0].icon}
+            />
+            <Text fw={600}>Category</Text>
             <Group>
               <Input.Wrapper label="Icon">
-                <Popover
-                  opened={iconsPopoverOpen}
-                  onClose={closeIconsPopover}
-                  position="right"
-                  withArrow
-                >
-                  <Popover.Target>
-                    <ActionIcon
-                      onClick={openIconsPopover}
-                      w={36}
-                      h={36}
-                      radius="xl"
-                      display="block"
-                    >
-                      <img
-                        alt="category icon"
-                        src={`/assets/categories/${iconName}`}
-                        width="18"
-                        height="18"
-                      />
-                    </ActionIcon>
-                  </Popover.Target>
-                  <Popover.Dropdown p={0}>
-                    <ScrollArea h={500} type="auto" px="lg" py="sm">
-                      <Text fw={700}>Select Icon</Text>
-                      <SimpleGrid
-                        mt="sm"
-                        cols={{ base: 3, xs: 5, sm: 6, md: 7, lg: 8 }}
-                        spacing="sm"
-                      >
-                        {CATEGORY_ICON_LIST.map((i) => (
-                          <ActionIcon
-                            key={i}
-                            w={48}
-                            h={48}
-                            radius="xl"
-                            variant="subtle"
-                            color="gray"
-                            onClick={() => {
-                              setIconName(i);
-                              closeIconsPopover();
-                            }}
-                          >
-                            <img
-                              alt="category icon"
-                              src={`/assets/categories/${i}`}
-                              width="26"
-                              height="26"
-                            />
-                          </ActionIcon>
-                        ))}
-                      </SimpleGrid>
-                    </ScrollArea>
-                  </Popover.Dropdown>
-                </Popover>
+                <IconsPopover
+                  opened={openIconsPopover === 0}
+                  open={() => setOpenIconsPopover(0)}
+                  close={closeIconsPopover}
+                  iconName={categories[0].icon}
+                  onSelectIcon={(icon) => {
+                    setCategories((prev) => {
+                      const arr = [...prev];
+                      arr[0] = { ...arr[0], icon };
+                      return arr;
+                    });
+                    closeIconsPopover();
+                  }}
+                />
               </Input.Wrapper>
               <TextInput
                 label="Name"
                 type="text"
                 id="title"
-                name="title"
+                name="category.title"
                 autoComplete="off"
                 minLength={1}
                 maxLength={255}
                 required
                 style={{ flex: 1 }}
-                defaultValue={isUpdate ? category.title : ""}
+                value={categories[0].title}
+                onChange={(event) => {
+                  setCategories((prev) => {
+                    const arr = [...prev];
+                    arr[0] = { ...arr[0], title: event.target.value };
+                    return arr;
+                  });
+                }}
               />
             </Group>
 
-            <Checkbox
-              size="md"
-              label="Is Parent Category"
-              name="isParent"
-              checked={isParent}
-              onChange={(event) => setIsParent(event.currentTarget.checked)}
-            />
+            <Stack mt="md" gap="sm">
+              <Text fw={600}>Subcategories</Text>
 
-            <Box h={60.8} hidden={!isParent} />
-            <Box hidden={isParent}>
-              <NativeSelect
-                id="parent-category"
-                name="parent"
-                defaultValue={parentCategories[0].id}
-                label="Parent"
-              >
-                {parentCategories.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.title}
-                  </option>
+              <Stack>
+                {categories.slice(1).map((c, index) => (
+                  <Group key={index} align="flex-end" gap={0}>
+                    <input
+                      type="hidden"
+                      name={`subcategory.${index}.id`}
+                      value={c.id}
+                    />
+                    <input
+                      type="hidden"
+                      name={`subcategory.${index}.iconName`}
+                      value={c.icon}
+                    />
+                    <Input.Wrapper label="Icon">
+                      <IconsPopover
+                        opened={openIconsPopover === index + 1}
+                        open={() => setOpenIconsPopover(index + 1)}
+                        close={closeIconsPopover}
+                        iconName={c.icon}
+                        onSelectIcon={(icon) => {
+                          setCategories((prev) => {
+                            const arr = [...prev];
+                            arr[index + 1] = {
+                              ...arr[index + 1],
+                              icon,
+                            };
+                            return arr;
+                          });
+                          closeIconsPopover();
+                        }}
+                      />
+                    </Input.Wrapper>
+                    <TextInput
+                      ml={16}
+                      label="Name"
+                      type="text"
+                      id="title"
+                      name={`subcategory.${index}.title`}
+                      autoComplete="off"
+                      minLength={1}
+                      maxLength={255}
+                      required
+                      style={{ flex: 1 }}
+                      value={c.title}
+                      onChange={(event) => {
+                        setCategories((prev) => {
+                          const arr = [...prev];
+                          arr[index + 1] = {
+                            ...arr[index + 1],
+                            title: event.target.value,
+                          };
+                          return arr;
+                        });
+                      }}
+                    />
+                    <ActionIcon
+                      variant="subtle"
+                      size="sm"
+                      radius="xl"
+                      color="dark"
+                      type="button"
+                      w={36}
+                      h={36}
+                      onClick={() => {
+                        setCategories((prev) => {
+                          const arr = [...prev];
+                          arr.splice(index + 1, 1);
+                          return arr;
+                        });
+                      }}
+                    >
+                      <IconTrash size="1rem" />
+                    </ActionIcon>
+                  </Group>
                 ))}
-              </NativeSelect>
-            </Box>
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  style={{ width: "fit-content" }}
+                  type="button"
+                  onClick={() => {
+                    setCategories((prev) => [...prev, getEmptyCategory()]);
+                  }}
+                >
+                  Add subcategory
+                </Button>
+              </Stack>
+            </Stack>
           </Stack>
 
           <Button type="submit" disabled={loading} ml="auto" mt="lg">
-            Create
+            Submit
           </Button>
         </fetcher.Form>
       </Modal>
     </>
+  );
+};
+
+const IconsPopover = ({
+  opened,
+  open,
+  close,
+  iconName,
+  onSelectIcon,
+}: {
+  opened: boolean;
+  open: () => void;
+  close: () => void;
+  iconName: string;
+  onSelectIcon: (icon: string) => void;
+}) => {
+  return (
+    <Popover opened={opened} onClose={close} position="right" withArrow>
+      <Popover.Target>
+        <ActionIcon onClick={open} w={36} h={36} radius="xl" display="block">
+          <img
+            alt="category icon"
+            src={`/assets/categories/${iconName}`}
+            width="18"
+            height="18"
+          />
+        </ActionIcon>
+      </Popover.Target>
+      <Popover.Dropdown p={0}>
+        <ScrollArea h={500} type="auto" px="lg" py="sm">
+          <Text fw={700}>Select Icon</Text>
+          <SimpleGrid
+            mt="sm"
+            cols={{ base: 3, xs: 5, sm: 6, md: 7, lg: 8 }}
+            spacing="sm"
+          >
+            {CATEGORY_ICON_LIST.map((i) => (
+              <ActionIcon
+                key={i}
+                w={48}
+                h={48}
+                radius="xl"
+                variant="subtle"
+                color="gray"
+                onClick={() => onSelectIcon(i)}
+              >
+                <img
+                  alt="category icon"
+                  src={`/assets/categories/${i}`}
+                  width="26"
+                  height="26"
+                />
+              </ActionIcon>
+            ))}
+          </SimpleGrid>
+        </ScrollArea>
+      </Popover.Dropdown>
+    </Popover>
   );
 };

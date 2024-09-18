@@ -110,7 +110,6 @@ export function calculateDashboardData(
 
   expenseDonutData.sort((a, b) => b.value - a.value);
   incomeDonutData.sort((a, b) => b.value - a.value);
-  console.log(areaChartDataMap);
   const areaChartData = (() => {
     const arr: ChartData = [];
     areaChartDataMap.forEach((value, key) => {

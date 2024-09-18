@@ -61,11 +61,7 @@ export default function CategoriesPage() {
       </Title>
 
       <Group mt="lg">
-        <UpsertCategoryModal
-          type={type}
-          parentCategories={nestedCategories}
-          category={categoryToUpdate}
-        />
+        <UpsertCategoryModal type={type} category={categoryToUpdate} />
 
         <SegmentedControl
           size="sm"
