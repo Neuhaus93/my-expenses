@@ -75,15 +75,17 @@ export async function action(args: ActionFunctionArgs) {
       .returning({ id: categories.id });
 
     // Create all subcategories
-    await db.insert(categories).values(
-      children.map((c) => ({
-        title: c.title,
-        userId,
-        iconName: c.iconName,
-        type,
-        parentId: parent.id,
-      })),
-    );
+    if (children.length > 0) {
+      await db.insert(categories).values(
+        children.map((c) => ({
+          title: c.title,
+          userId,
+          iconName: c.iconName,
+          type,
+          parentId: parent.id,
+        })),
+      );
+    }
   } else {
     const results = await db
       .select()
