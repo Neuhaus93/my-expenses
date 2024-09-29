@@ -13,6 +13,8 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
 
@@ -31,6 +33,7 @@ export const links: LinksFunction = () => [
 ];
 
 const theme = createTheme({});
+const queryClient = new QueryClient();
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -44,8 +47,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <MantineProvider theme={theme} defaultColorScheme="auto">
-          <Notifications />
-          {children}
+          <QueryClientProvider client={queryClient}>
+            <Notifications />
+            {children}
+            <ReactQueryDevtools initialIsOpen={false} />
+          </QueryClientProvider>
         </MantineProvider>
         <ScrollRestoration />
         <Scripts />

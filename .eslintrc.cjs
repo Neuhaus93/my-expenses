@@ -30,6 +30,7 @@ module.exports = {
       files: ["**/*.{js,jsx,ts,tsx}"],
       plugins: ["react", "jsx-a11y"],
       extends: [
+        "plugin:@tanstack/query/recommended",
         "plugin:react/recommended",
         "plugin:react/jsx-runtime",
         "plugin:react-hooks/recommended",

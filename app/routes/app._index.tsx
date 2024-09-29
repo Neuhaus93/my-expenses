@@ -8,21 +8,22 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { useFetcher, useLoaderData, useSubmit } from "@remix-run/react";
-import { and, desc, eq, gte, inArray, lt, or, sum } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
-import { useState } from "react";
+import {
+  ShouldRevalidateFunction,
+  useFetcher,
+  useLoaderData,
+  useSearchParams,
+  useSubmit,
+} from "@remix-run/react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import { CategoriesSelect } from "~/components/categories-select";
 import { SavingsIllustration } from "~/components/illustrations/savings";
 import { UpsertTransactionModal } from "~/components/upsert-transaction-modal";
+import { getBalance, getTransactions } from "~/data/transactions";
 import { db } from "~/db/config.server";
-import {
-  categories as tableCategories,
-  transactions as tableTransactions,
-  transferences as tableTransferences,
-  wallets as tableWallets,
-} from "~/db/schema.server";
+import { transactionsQueryOptions } from "~/hooks/api/useTransactionsQuery";
 import { getNestedCategories } from "~/lib/category";
 import { formatCurrency } from "~/lib/currency";
 import { calculateDashboardData } from "~/lib/transacion";
@@ -59,91 +60,13 @@ export async function loader(args: LoaderFunctionArgs) {
   dateMonthLater.setUTCDate(1);
   dateMonthLater.setUTCHours(0, 0, 0, 0);
 
-  const categoryIds = (
-    await db
-      .select({ id: tableCategories.id })
-      .from(tableCategories)
-      .where(
-        and(
-          eq(tableCategories.userId, userId),
-          eq(tableCategories.parentId, category),
-        ),
-      )
-  )
-    .map((c) => c.id)
-    .concat([category]);
-
-  const tableCategoryParent = alias(tableCategories, "parent");
-  const tableTransactionFrom = alias(tableTransactions, "from");
-  const tableTransactionTo = alias(tableTransactions, "to");
-
-  const transactionsPromise = db
-    .select({
-      id: tableTransactions.id,
-      cents: tableTransactions.cents,
-      type: tableTransactions.type,
-      description: tableTransactions.description,
-      timestamp: tableTransactions.timestamp,
-      isTransference: tableTransactions.isTransference,
-      wallet: {
-        id: tableWallets.id,
-        name: tableWallets.name,
-      },
-      category: {
-        id: tableCategories.id,
-        title: tableCategories.title,
-        iconName: tableCategories.iconName,
-      },
-      categoryParent: {
-        id: tableCategoryParent.id,
-        title: tableCategoryParent.title,
-      },
-      transferenceFrom: {
-        id: tableTransactionFrom.id,
-        walletId: tableTransactionFrom.walletId,
-      },
-      transferenceTo: {
-        id: tableTransactionTo.id,
-        walletId: tableTransactionTo.walletId,
-      },
-    })
-    .from(tableTransactions)
-    .where(
-      and(
-        eq(tableTransactions.userId, userId),
-        gte(tableTransactions.timestamp, date),
-        lt(tableTransactions.timestamp, dateMonthLater),
-        category === -1
-          ? undefined
-          : inArray(tableTransactions.categoryId, categoryIds),
-        wallet === -1 ? undefined : eq(tableTransactions.walletId, wallet),
-      ),
-    )
-    .innerJoin(
-      tableCategories,
-      eq(tableTransactions.categoryId, tableCategories.id),
-    )
-    .innerJoin(tableWallets, eq(tableTransactions.walletId, tableWallets.id))
-    .leftJoin(
-      tableCategoryParent,
-      eq(tableCategories.parentId, tableCategoryParent.id),
-    )
-    .leftJoin(
-      tableTransferences,
-      or(
-        eq(tableTransactions.id, tableTransferences.transactionOutId),
-        eq(tableTransactions.id, tableTransferences.transactionInId),
-      ),
-    )
-    .leftJoin(
-      tableTransactionFrom,
-      eq(tableTransferences.transactionOutId, tableTransactionFrom.id),
-    )
-    .leftJoin(
-      tableTransactionTo,
-      eq(tableTransferences.transactionInId, tableTransactionTo.id),
-    )
-    .orderBy(desc(tableTransactions.timestamp), desc(tableTransactions.id));
+  const transactionsPromise = getTransactions({
+    userId,
+    category,
+    wallet,
+    year,
+    month,
+  });
   const categoriesPromise = getNestedCategories(userId);
   const walletsPromise = db.query.wallets.findMany({
     columns: { id: true, name: true, initialBalance: true },
@@ -154,49 +77,29 @@ export async function loader(args: LoaderFunctionArgs) {
       return [operators.asc(fields.name)];
     },
   });
-  const balanceResultPromise = db
-    .select({ balance: sum(tableTransactions.cents) })
-    .from(tableTransactions)
-    .groupBy(tableTransactions.userId)
-    .where(
-      and(
-        eq(tableTransactions.userId, userId),
-        lt(tableTransactions.timestamp, dateMonthLater),
-      ),
-    );
+  const balanceResultPromise = getBalance({
+    userId,
+    year,
+    month,
+  });
 
-  const [transactions, categories, wallets, balanceResult] = await Promise.all([
+  const [transactions, categories, wallets, balance] = await Promise.all([
     transactionsPromise,
     categoriesPromise,
     walletsPromise,
     balanceResultPromise,
   ]);
-  const [{ balance }] = z
-    .array(z.object({ balance: z.coerce.number().int() }))
-    .length(1)
-    .catch([{ balance: 0 }])
-    .parse(balanceResult);
-
-  const {
-    totalIncome,
-    totalExpense,
-    expenseDonutData,
-    incomeDonutData,
-    areaChartData,
-  } = calculateDashboardData(transactions);
+  console.log("This ran");
 
   return json(
     {
+      wallet,
+      category,
       transactions,
       categories,
       wallets,
       defaultCategory: category,
-      balance: balance + wallets.reduce((acc, w) => acc + w.initialBalance, 0),
-      income: totalIncome,
-      expense: totalExpense,
-      expenseDonutData,
-      incomeDonutData,
-      areaChartData,
+      balance,
     },
     200,
   );
@@ -204,22 +107,54 @@ export async function loader(args: LoaderFunctionArgs) {
 export type IndexLoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function Index() {
-  const {
-    transactions,
-    categories,
-    wallets,
-    defaultCategory,
-    balance,
-    income,
-    expense,
-    expenseDonutData,
-    incomeDonutData,
-    areaChartData,
-  } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
+  const year = z.coerce
+    .number()
+    .int()
+    .catch(new Date().getFullYear())
+    .parse(searchParams.get("year") ?? NaN);
+  const month = z.coerce
+    .number()
+    .int()
+    .catch(new Date().getMonth())
+    .parse(searchParams.get("month") ?? NaN);
+  const { wallet, category, categories, wallets, defaultCategory } = loaderData;
   const [opened, { open, close }] = useDisclosure(false);
   const [editTransactionIndex, setEditTransactionIndex] = useState<
     number | null
   >(null);
+  const { data: transactions } = useSuspenseQuery({
+    ...transactionsQueryOptions({
+      year,
+      month,
+      wallet,
+      category,
+    }),
+    initialData: loaderData.transactions,
+    staleTime: Infinity,
+  });
+  const { data: balance } = useSuspenseQuery({
+    queryKey: ["balance", { year, month }],
+    queryFn: async () => {
+      const response = await fetch("/api/balance", {
+        method: "POST",
+        body: JSON.stringify({ year, month }),
+        headers: { "Content-Type": "application/json" },
+      });
+      return response.json();
+    },
+    initialData: loaderData.balance,
+    staleTime: Infinity,
+  });
+
+  const {
+    totalIncome,
+    totalExpense,
+    expenseDonutData,
+    incomeDonutData,
+    areaChartData,
+  } = useMemo(() => calculateDashboardData(transactions), [transactions]);
   const categoryFetcher = useFetcher();
   const submit = useSubmit();
 
@@ -227,9 +162,13 @@ export default function Index() {
     <>
       <Group mb={16}>
         {[
-          { title: "Current Balance", value: formatCurrency(balance) },
-          { title: "Income", value: formatCurrency(income) },
-          { title: "Expense", value: formatCurrency(expense) },
+          {
+            title: "Current Balance",
+            value:
+              typeof balance === "number" ? formatCurrency(balance) : "...",
+          },
+          { title: "Income", value: formatCurrency(totalIncome) },
+          { title: "Expense", value: formatCurrency(totalExpense) },
         ].map(({ title, value }) => (
           <Card key={title} withBorder shadow="xs" radius="md" w={200}>
             <Stack gap="sm">
@@ -341,6 +280,10 @@ export default function Index() {
     </>
   );
 }
+
+export const shouldRevalidate: ShouldRevalidateFunction = () => {
+  return false;
+};
 
 export async function action({ request }: ActionFunctionArgs) {
   const url = new URL(request.url);
