@@ -22,6 +22,8 @@ import { CategoriesSelect } from "~/components/categories-select";
 import { isValidTransactionType, TransactionType } from "~/lib/transacion";
 import { IndexLoaderData } from "~/routes/app._index";
 
+let formKeyHelper = 1;
+
 export type UpsertTransactionDialogProps = {
   opened: boolean;
   onClose: () => void;
@@ -56,6 +58,10 @@ export const UpsertTransactionModal = ({
   useEffect(() => {
     setTab(() => getTransactionTab(t));
   }, [t]);
+
+  useEffect(() => {
+    if (opened) formKeyHelper++;
+  }, [opened]);
 
   useEffect(() => {
     if (fetcher.data && opened) {
@@ -97,6 +103,7 @@ export const UpsertTransactionModal = ({
         fullWidth
       />
       <TransactionForm
+        key={`transaction-form-${formKeyHelper}`}
         tab={tab}
         fetcher={fetcher}
         transaction={t}

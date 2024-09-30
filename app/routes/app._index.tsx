@@ -158,7 +158,12 @@ export async function loader(args: LoaderFunctionArgs) {
     .select({ balance: sum(tableTransactions.cents) })
     .from(tableTransactions)
     .groupBy(tableTransactions.userId)
-    .where(eq(tableTransactions.userId, userId));
+    .where(
+      and(
+        eq(tableTransactions.userId, userId),
+        lt(tableTransactions.timestamp, dateMonthLater),
+      ),
+    );
 
   const [transactions, categories, wallets, balanceResult] = await Promise.all([
     transactionsPromise,
