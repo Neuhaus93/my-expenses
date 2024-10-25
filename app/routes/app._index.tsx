@@ -298,19 +298,19 @@ export default function Index() {
           />
         </Flex>
       </Group>
-      <Stack mt="lg" justify="center" align="center" ml={40} mr={8}>
-        <AreaChart
-          h={260}
-          data={areaChartData}
-          valueFormatter={(v) => formatCurrency(v)}
-          dataKey="date"
-          series={[
-            { name: "Expense", color: "red.6" },
-            { name: "Income", color: "green.6" },
-          ]}
-          curveType="monotone"
-        />
-      </Stack>
+      {/* <Stack mt="lg" justify="center" align="center" ml={40} mr={8}> */}
+      {/*   <AreaChart */}
+      {/*     h={260} */}
+      {/*     data={areaChartData} */}
+      {/*     valueFormatter={(v) => formatCurrency(v)} */}
+      {/*     dataKey="date" */}
+      {/*     series={[ */}
+      {/*       { name: "Expense", color: "red.6" }, */}
+      {/*       { name: "Income", color: "green.6" }, */}
+      {/*     ]} */}
+      {/*     curveType="monotone" */}
+      {/*   /> */}
+      {/* </Stack> */}
 
       {transactions.length > 0 ? (
         <div className="relative mt-6 overflow-x-auto shadow-md sm:rounded-lg">
